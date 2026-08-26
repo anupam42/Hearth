@@ -4,6 +4,18 @@
   flex-direction: column;
 }
 
+.shell {
+  min-height: 100vh;
+  display: flex;
+}
+
+.shell-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .page {
   flex: 1;
   display: flex;
