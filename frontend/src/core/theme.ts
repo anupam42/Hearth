@@ -6,7 +6,8 @@ const STORAGE_KEY = "hearth_theme";
 
 function readStored(): ThemePref {
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === "light" || stored === "dark" ? stored : "system";
+  if (stored === "light" || stored === "dark" || stored === "system") return stored;
+  return "light";
 }
 
 export const themePref = signal<ThemePref>(readStored());

@@ -45,7 +45,10 @@ pub fn verify_password(password: &str, hash: &str) -> bool {
         .is_ok()
 }
 
-pub fn issue_session_cookie(user_id: &str, email: &str, system_role: &str) -> Cookie<'static> {
+/// Issues a session cookie. When `remember` is false, the cookie carries no
+/// `Max-Age` and is dropped by the browser when it closes (still valid for the
+/// full TTL server-side in the meantime, since that's encoded in the JWT itself).
+pub fn issue_session_cookie(user_id: &str, email: &str, system_role: &str, remember: bool) -> Cookie<'static> {
     let exp = chrono::Utc::now().timestamp() + SESSION_TTL_SECS;
     let claims = Claims {
         sub: user_id.to_string(),
@@ -60,12 +63,14 @@ pub fn issue_session_cookie(user_id: &str, email: &str, system_role: &str) -> Co
     )
     .expect("jwt encode");
 
-    Cookie::build((SESSION_COOKIE, token))
+    let mut builder = Cookie::build((SESSION_COOKIE, token))
         .path("/")
         .http_only(true)
-        .same_site(cookie::SameSite::Lax)
-        .max_age(cookie::time::Duration::seconds(SESSION_TTL_SECS))
-        .build()
+        .same_site(cookie::SameSite::Lax);
+    if remember {
+        builder = builder.max_age(cookie::time::Duration::seconds(SESSION_TTL_SECS));
+    }
+    builder.build()
 }
 
 pub fn clear_session_cookie() -> Cookie<'static> {

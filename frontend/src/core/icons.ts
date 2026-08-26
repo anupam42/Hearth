@@ -91,6 +91,11 @@ export const icons = {
     ),
   chevronLeft: (size?: number) => icon(`<polyline points="15 18 9 12 15 6"/>`, size),
   x: (size?: number) => icon(`<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`, size),
+  eyeOff: (size?: number) =>
+    icon(
+      `<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-3.22 4.44"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`,
+      size,
+    ),
   play: (size?: number) => icon(`<polygon points="6 3 20 12 6 21 6 3"/>`, size),
   rotate: (size?: number) =>
     icon(

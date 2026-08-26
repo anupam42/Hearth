@@ -43,7 +43,7 @@ pub async fn register(
 
     crate::audit::append(&state.db, &id, "user.register", "user", &id, "{}").await?;
 
-    let cookie = auth::issue_session_cookie(&id, &req.email, "user");
+    let cookie = auth::issue_session_cookie(&id, &req.email, "user", true);
     let jar = CookieJar::new().add(cookie);
     Ok((jar, Json(serde_json::json!({ "id": id, "email": req.email }))))
 }
@@ -71,7 +71,7 @@ pub async fn login(
 
     crate::audit::append(&state.db, &user.id, "user.login", "user", &user.id, "{}").await?;
 
-    let cookie = auth::issue_session_cookie(&user.id, &user.email, &user.system_role);
+    let cookie = auth::issue_session_cookie(&user.id, &user.email, &user.system_role, req.remember.unwrap_or(true));
     let jar = CookieJar::new().add(cookie);
     Ok((jar, Json(user)))
 }

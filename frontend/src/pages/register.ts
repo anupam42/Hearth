@@ -2,6 +2,7 @@ import { h } from "../core/dom.js";
 import { effect, signal } from "../core/reactive.js";
 import { api, ApiError, type User } from "../api/client.js";
 import { navigate } from "../core/router.js";
+import { AuthShell, AuthSwitchLink, PasswordField } from "../core/auth-shell.js";
 
 export function RegisterPage(onAuthenticated: (user: User) => void): Node {
   const email = signal("");
@@ -32,54 +33,44 @@ export function RegisterPage(onAuthenticated: (user: User) => void): Node {
     errorEl.style.display = msg ? "block" : "none";
   });
 
-  return h(
-    "div.auth-shell",
-    {},
+  const form = h(
+    "form.stack.gap-4",
+    { onsubmit: submit },
     h(
-      "form.auth-card.card",
-      { onsubmit: submit },
-      h("h1", {}, "Create your account"),
-      h(
-        "div.field",
-        {},
-        h("label", {}, "Name"),
-        h("input.input", {
-          required: true,
-          value: displayName(),
-          oninput: (e: Event) => displayName.set((e.target as HTMLInputElement).value),
-        }),
-      ),
-      h(
-        "div.field",
-        {},
-        h("label", {}, "Email"),
-        h("input.input", {
-          type: "email",
-          required: true,
-          value: email(),
-          oninput: (e: Event) => email.set((e.target as HTMLInputElement).value),
-        }),
-      ),
-      h(
-        "div.field",
-        {},
-        h("label", {}, "Password"),
-        h("input.input", {
-          type: "password",
-          required: true,
-          minlength: 8,
-          value: password(),
-          oninput: (e: Event) => password.set((e.target as HTMLInputElement).value),
-        }),
-      ),
-      errorEl,
-      h("button.btn.btn-primary", { type: "submit" }, "Create account"),
-      h(
-        "p",
-        { style: { fontSize: "0.875rem", color: "var(--color-text-muted)" } },
-        "Already have an account? ",
-        h("a", { href: "/login" }, "Sign in"),
-      ),
+      "div.field",
+      {},
+      h("label", {}, "Name"),
+      h("input.input", {
+        required: true,
+        value: displayName(),
+        oninput: (e: Event) => displayName.set((e.target as HTMLInputElement).value),
+      }),
     ),
+    h(
+      "div.field",
+      {},
+      h("label", {}, "Email"),
+      h("input.input", {
+        type: "email",
+        required: true,
+        placeholder: "yourname@mail.com",
+        value: email(),
+        oninput: (e: Event) => email.set((e.target as HTMLInputElement).value),
+      }),
+    ),
+    h(
+      "div.field",
+      {},
+      h("label", {}, "Password"),
+      PasswordField(password, (v) => password.set(v), { minlength: 8 }),
+    ),
+    errorEl,
+    h("button.btn.btn-primary.btn-block", { type: "submit" }, "Create account"),
+  );
+
+  return AuthShell(
+    "Create your account",
+    AuthSwitchLink("Already have an account?", "Sign in", "/login"),
+    form,
   );
 }

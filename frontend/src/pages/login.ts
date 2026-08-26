@@ -2,10 +2,12 @@ import { h } from "../core/dom.js";
 import { effect, signal } from "../core/reactive.js";
 import { api, ApiError, type User } from "../api/client.js";
 import { navigate } from "../core/router.js";
+import { AuthShell, AuthSwitchLink, PasswordField } from "../core/auth-shell.js";
 
 export function LoginPage(onAuthenticated: (user: User) => void): Node {
   const email = signal("");
   const password = signal("");
+  const remember = signal(true);
   const error = signal("");
   const loading = signal(false);
 
@@ -17,6 +19,7 @@ export function LoginPage(onAuthenticated: (user: User) => void): Node {
       const user = await api.post<User>("/auth/login", {
         email: email(),
         password: password(),
+        remember: remember(),
       });
       onAuthenticated(user);
       navigate("/");
@@ -34,43 +37,40 @@ export function LoginPage(onAuthenticated: (user: User) => void): Node {
     errorEl.style.display = msg ? "block" : "none";
   });
 
-  return h(
-    "div.auth-shell",
-    {},
+  const form = h(
+    "form.stack.gap-4",
+    { onsubmit: submit },
     h(
-      "form.auth-card.card",
-      { onsubmit: submit },
-      h("h1", {}, "Sign in to Hearth"),
-      h(
-        "div.field",
-        {},
-        h("label", {}, "Email"),
-        h("input.input", {
-          type: "email",
-          required: true,
-          value: email(),
-          oninput: (e: Event) => email.set((e.target as HTMLInputElement).value),
-        }),
-      ),
-      h(
-        "div.field",
-        {},
-        h("label", {}, "Password"),
-        h("input.input", {
-          type: "password",
-          required: true,
-          value: password(),
-          oninput: (e: Event) => password.set((e.target as HTMLInputElement).value),
-        }),
-      ),
-      errorEl,
-      h("button.btn.btn-primary", { type: "submit" }, "Sign in"),
-      h(
-        "p",
-        { style: { fontSize: "0.875rem", color: "var(--color-text-muted)" } },
-        "No account? ",
-        h("a", { href: "/register" }, "Register"),
-      ),
+      "div.field",
+      {},
+      h("label", {}, "Email"),
+      h("input.input", {
+        type: "email",
+        required: true,
+        placeholder: "yourname@mail.com",
+        value: email(),
+        oninput: (e: Event) => email.set((e.target as HTMLInputElement).value),
+      }),
     ),
+    h(
+      "div.field",
+      {},
+      h("label", {}, "Password"),
+      PasswordField(password, (v) => password.set(v)),
+    ),
+    h(
+      "label.remember-row",
+      {},
+      h("input", {
+        type: "checkbox",
+        checked: remember(),
+        onchange: (e: Event) => remember.set((e.target as HTMLInputElement).checked),
+      }),
+      "Remember me",
+    ),
+    errorEl,
+    h("button.btn.btn-primary.btn-block", { type: "submit", disabled: loading() }, "Sign in"),
   );
+
+  return AuthShell("Sign in to Hearth", AuthSwitchLink("Don't have an account?", "Sign up", "/register"), form);
 }
