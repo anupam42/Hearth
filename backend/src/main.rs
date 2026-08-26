@@ -28,11 +28,11 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "snorlax=debug,tower_http=info".into()),
+                .unwrap_or_else(|_| "hearth=debug,tower_http=info".into()),
         )
         .init();
 
-    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://snorlax.db".into());
+    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://hearth.db".into());
     let db = db::connect(&database_url).await?;
 
     let state = AppState { db };
@@ -44,9 +44,9 @@ async fn main() -> anyhow::Result<()> {
         .layer(CorsLayer::permissive())
         .with_state(state);
 
-    let addr = std::env::var("SNORLAX_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".into());
+    let addr = std::env::var("HEARTH_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".into());
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    tracing::info!("snorlax listening on {addr}");
+    tracing::info!("hearth listening on {addr}");
     axum::serve(listener, app).await?;
 
     Ok(())

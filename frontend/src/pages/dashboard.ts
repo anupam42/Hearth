@@ -46,7 +46,7 @@ export function DashboardPage(): Node {
         "div.tip-banner",
         {},
         icons.lightbulb(18),
-        h("span", {}, h("strong", {}, "Tip: "), "Log in with your SSO provider to sync your profile picture across Snorlax."),
+        h("span", {}, h("strong", {}, "Tip: "), "Log in with your SSO provider to sync your profile picture across Hearth."),
       ),
     ),
     h(

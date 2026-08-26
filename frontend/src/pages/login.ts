@@ -40,7 +40,7 @@ export function LoginPage(onAuthenticated: (user: User) => void): Node {
     h(
       "form.auth-card.card",
       { onsubmit: submit },
-      h("h1", {}, "Sign in to Snorlax"),
+      h("h1", {}, "Sign in to Hearth"),
       h(
         "div.field",
         {},

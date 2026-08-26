@@ -1,4 +1,4 @@
-# Snorlax
+# Hearth
 
 A self-hosted project and task tracker with OIDC/password authentication and a tamper-evident audit log.
 
@@ -40,7 +40,7 @@ cd backend
 cargo run
 ```
 
-Runs on `SNORLAX_ADDR` (default `0.0.0.0:8080`), backed by the SQLite database at `DATABASE_URL` (default `sqlite://snorlax.db`).
+Runs on `HEARTH_ADDR` (default `0.0.0.0:8080`), backed by the SQLite database at `DATABASE_URL` (default `sqlite://hearth.db`).
 
 ### Frontend
 
@@ -55,5 +55,5 @@ Run `npm run build` in `frontend/` before `cargo run`/`cargo build` in `backend/
 
 ## Environment variables
 
-- `DATABASE_URL` — SQLite connection string (default `sqlite://snorlax.db`)
-- `SNORLAX_ADDR` — address to bind (default `0.0.0.0:8080`)
+- `DATABASE_URL` — SQLite connection string (default `sqlite://hearth.db`)
+- `HEARTH_ADDR` — address to bind (default `0.0.0.0:8080`)

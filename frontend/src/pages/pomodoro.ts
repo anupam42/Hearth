@@ -29,7 +29,7 @@ interface FocusEntry {
   minutes: number;
 }
 
-const HISTORY_KEY = "snorlax_focus_history";
+const HISTORY_KEY = "hearth_focus_history";
 
 function loadHistory(): FocusEntry[] {
   try {

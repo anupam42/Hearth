@@ -17,6 +17,9 @@ const mimeTypes = {
   ".css": "text/css",
   ".map": "application/json",
   ".json": "application/json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
 };
 
 /** Server-sent-events clients waiting for a reload signal. */
@@ -136,6 +139,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`snorlax dev server on http://localhost:${port} (api -> ${apiTarget})`);
+  console.log(`hearth dev server on http://localhost:${port} (api -> ${apiTarget})`);
   if (liveReload) console.log("live reload enabled — watching src/ for changes");
 });

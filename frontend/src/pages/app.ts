@@ -114,7 +114,7 @@ function Sidebar(currentUser: ReturnType<typeof signal<User | null>>): Node {
   return h(
     "aside.sidebar",
     {},
-    h("div.sidebar-brand", {}, icons.building(20)),
+    h("div.sidebar-brand", {}, h("img", { src: "/icon.svg", alt: "Hearth", width: 26, height: 26 })),
     h(
       "nav.sidebar-nav",
       {},
@@ -181,7 +181,12 @@ function Topbar(
   return h(
     "header.topbar",
     {},
-    h("a.topnav-brand.row.gap-2", { href: "/" }, icons.building(20), "Snorlax"),
+    h(
+      "a.topnav-brand.row.gap-2",
+      { href: "/" },
+      h("img", { src: "/icon.svg", alt: "Hearth", width: 24, height: 24 }),
+      "Hearth",
+    ),
     h(
       "div.topbar-actions",
       {},

@@ -2,7 +2,7 @@ import { effect, signal } from "./reactive.js";
 
 export type ThemePref = "light" | "dark" | "system";
 
-const STORAGE_KEY = "snorlax_theme";
+const STORAGE_KEY = "hearth_theme";
 
 function readStored(): ThemePref {
   const stored = localStorage.getItem(STORAGE_KEY);

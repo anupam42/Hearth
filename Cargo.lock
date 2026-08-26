@@ -959,6 +959,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "hearth"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "async-trait",
+ "axum",
+ "axum-extra",
+ "chrono",
+ "cookie",
+ "hex",
+ "jsonwebtoken",
+ "mime_guess",
+ "oauth2",
+ "openidconnect",
+ "rand",
+ "reqwest 0.12.28",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sqlx",
+ "thiserror 2.0.20",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2650,38 +2682,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "snorlax"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argon2",
- "async-trait",
- "axum",
- "axum-extra",
- "chrono",
- "cookie",
- "hex",
- "jsonwebtoken",
- "mime_guess",
- "oauth2",
- "openidconnect",
- "rand",
- "reqwest 0.12.28",
- "rust-embed",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "sqlx",
- "thiserror 2.0.20",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

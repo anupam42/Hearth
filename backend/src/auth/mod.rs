@@ -9,13 +9,13 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
-pub const SESSION_COOKIE: &str = "snorlax_session";
+pub const SESSION_COOKIE: &str = "hearth_session";
 const SESSION_TTL_SECS: i64 = 60 * 60 * 24 * 7;
 
 fn jwt_secret() -> &'static str {
     static SECRET: OnceLock<String> = OnceLock::new();
     SECRET.get_or_init(|| {
-        std::env::var("SNORLAX_JWT_SECRET")
+        std::env::var("HEARTH_JWT_SECRET")
             .unwrap_or_else(|_| "dev-only-insecure-secret-change-me".to_string())
     })
 }
