@@ -102,6 +102,37 @@ export const icons = {
       `<path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6l1 1 2-2"/><path d="M4 12l1 1 2-2"/><path d="M4 18l1 1 2-2"/>`,
       size,
     ),
+  pause: (size?: number) =>
+    icon(`<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>`, size),
+  helpCircle: (size?: number) =>
+    icon(
+      `<circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><line x1="12" y1="17" x2="12" y2="17.01"/>`,
+      size,
+    ),
+  moreHorizontal: (size?: number) =>
+    icon(
+      `<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>`,
+      size,
+    ),
+  skipBack: (size?: number) => icon(`<polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>`, size),
+  skipForward: (size?: number) => icon(`<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>`, size),
+  shuffle: (size?: number) =>
+    icon(
+      `<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>`,
+      size,
+    ),
+  volume: (size?: number) =>
+    icon(
+      `<polygon points="3 9 8 9 13 4 13 20 8 15 3 15 3 9"/><path d="M17 8a5 5 0 0 1 0 8"/>`,
+      size,
+    ),
+  music: (size?: number) =>
+    icon(`<circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M9 18V4l12-2v14"/>`, size),
+  trash: (size?: number) =>
+    icon(
+      `<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>`,
+      size,
+    ),
   lightbulb: (size?: number) =>
     icon(
       `<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>`,
