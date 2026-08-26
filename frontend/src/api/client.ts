@@ -45,6 +45,15 @@ export interface Project {
   created_at: string;
 }
 
+export interface Workspace {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+}
+
 export interface Task {
   id: string;
   project_id: string;

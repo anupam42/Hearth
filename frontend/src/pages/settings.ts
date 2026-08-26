@@ -2,6 +2,7 @@ import { h, list, when } from "../core/dom.js";
 import { computed, signal, type Signal } from "../core/reactive.js";
 import { icons } from "../core/icons.js";
 import { EmptyState } from "../core/empty-state.js";
+import { Drawer } from "../core/drawer.js";
 import type { User } from "../api/client.js";
 
 interface LocalToken {
@@ -18,7 +19,7 @@ export function SettingsPage(currentUser: Signal<User | null>): Node {
   const expiry = signal("");
   const hasTokens = computed(() => tokens().length > 0);
 
-  const createToken = (e: Event) => {
+  const createToken = (e: Event, close: () => void) => {
     e.preventDefault();
     if (!name().trim()) return;
     tokens.update((cur) => [
@@ -27,7 +28,57 @@ export function SettingsPage(currentUser: Signal<User | null>): Node {
     ]);
     name.set("");
     expiry.set("");
+    close();
   };
+
+  const drawer = Drawer("New Personal Access Token", (close) =>
+    h(
+      "form.stack.gap-4",
+      { onsubmit: (e: Event) => createToken(e, close) },
+      h(
+        "p",
+        { style: { color: "var(--color-text-muted)", fontSize: "0.875rem", marginTop: "0" } },
+        "Tokens authenticate API requests. Choose Read only to restrict a token to safe methods (GET), or Read & write for full access. Scope can be changed anytime.",
+      ),
+      h(
+        "div.field",
+        {},
+        h("label", {}, "Name"),
+        h("input.input", {
+          placeholder: "e.g. CI/CD pipeline",
+          value: name(),
+          oninput: (e: Event) => name.set((e.target as HTMLInputElement).value),
+        }),
+      ),
+      h(
+        "div.field",
+        {},
+        h("label", {}, "Permissions"),
+        h(
+          "select.input",
+          { onchange: (e: Event) => permission.set((e.target as HTMLSelectElement).value) },
+          h("option", { value: "Read only" }, "Read only"),
+          h("option", { value: "Read & write", selected: true }, "Read & write"),
+        ),
+      ),
+      h(
+        "div.field",
+        {},
+        h("label", {}, "Expiry (optional)"),
+        h("input.input", {
+          type: "date",
+          value: expiry(),
+          oninput: (e: Event) => expiry.set((e.target as HTMLInputElement).value),
+        }),
+      ),
+      h(
+        "div.drawer-footer",
+        { style: { padding: "0", borderTop: "none", marginTop: "8px" } },
+        h("button.btn.btn-secondary", { type: "button", onclick: close }, "Cancel"),
+        h("button.btn.btn-primary", { type: "submit" }, "Create Token"),
+      ),
+    ),
+  );
 
   return h(
     "div.page",
@@ -42,55 +93,20 @@ export function SettingsPage(currentUser: Signal<User | null>): Node {
       "div.stack.gap-3",
       { style: { padding: "24px" } },
       h(
-        "div.section-title",
+        "div.section-header",
         {},
-        icons.key(18),
-        "Personal Access Tokens",
+        h("div.section-title", {}, icons.key(18), "Personal Access Tokens"),
+        h(
+          "button.btn.btn-light",
+          { onclick: () => drawer.open() },
+          icons.plus(16),
+          "Create Token",
+        ),
       ),
       h(
         "p",
         { style: { color: "var(--color-text-muted)", fontSize: "0.875rem", marginTop: "-8px" } },
         "Tokens authenticate API requests. Choose Read only to restrict a token to safe methods (GET), or Read & write for full access. Scope can be changed anytime.",
-      ),
-      h(
-        "form.card",
-        { style: { padding: "16px" }, onsubmit: createToken },
-        h(
-          "div.pat-form-grid",
-          {},
-          h(
-            "div.field",
-            {},
-            h("label", {}, "Name"),
-            h("input.input", {
-              placeholder: "e.g. CI/CD pipeline",
-              value: name(),
-              oninput: (e: Event) => name.set((e.target as HTMLInputElement).value),
-            }),
-          ),
-          h(
-            "div.field",
-            {},
-            h("label", {}, "Permissions"),
-            h(
-              "select.input",
-              { onchange: (e: Event) => permission.set((e.target as HTMLSelectElement).value) },
-              h("option", { value: "Read only" }, "Read only"),
-              h("option", { value: "Read & write", selected: true }, "Read & write"),
-            ),
-          ),
-          h(
-            "div.field",
-            {},
-            h("label", {}, "Expiry (optional)"),
-            h("input.input", {
-              type: "date",
-              value: expiry(),
-              oninput: (e: Event) => expiry.set((e.target as HTMLInputElement).value),
-            }),
-          ),
-          h("button.btn.btn-light", { type: "submit" }, icons.plus(16), "Create Token"),
-        ),
       ),
       when(
         hasTokens,

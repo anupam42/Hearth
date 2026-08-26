@@ -2,6 +2,7 @@ pub mod audit;
 pub mod auth;
 pub mod projects;
 pub mod tasks;
+pub mod workspaces;
 
 use axum::routing::{get, patch, post};
 use axum::Router;
@@ -24,4 +25,5 @@ pub fn api_router() -> Router<AppState> {
         .route("/projects/:project_id/tasks/:task_id", patch(tasks::update))
         .route("/audit", get(audit::list))
         .route("/audit/verify", get(audit::verify))
+        .route("/workspaces", get(workspaces::list).post(workspaces::create))
 }

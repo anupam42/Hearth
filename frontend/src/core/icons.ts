@@ -90,6 +90,7 @@ export const icons = {
       size,
     ),
   chevronLeft: (size?: number) => icon(`<polyline points="15 18 9 12 15 6"/>`, size),
+  x: (size?: number) => icon(`<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`, size),
   play: (size?: number) => icon(`<polygon points="6 3 20 12 6 21 6 3"/>`, size),
   rotate: (size?: number) =>
     icon(

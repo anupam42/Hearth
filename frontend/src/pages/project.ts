@@ -1,5 +1,7 @@
-import { h, list, when } from "../core/dom.js";
+import { h, list } from "../core/dom.js";
 import { computed, signal } from "../core/reactive.js";
+import { Drawer } from "../core/drawer.js";
+import { icons } from "../core/icons.js";
 import { api, type Project, type Task } from "../api/client.js";
 
 const COLUMNS = [
@@ -13,8 +15,9 @@ export function ProjectPage(params: Record<string, string>): Node {
   const projectId = params.id!;
   const project = signal<Project | null>(null);
   const tasks = signal<Task[]>([]);
-  const showForm = signal(false);
   const newTitle = signal("");
+  const newDescription = signal("");
+  const newPriority = signal("medium");
 
   const load = async () => {
     const [p, t] = await Promise.all([
@@ -26,14 +29,66 @@ export function ProjectPage(params: Record<string, string>): Node {
   };
   load();
 
-  const createTask = async (e: Event) => {
+  const createTask = async (e: Event, close: () => void) => {
     e.preventDefault();
     if (!newTitle()) return;
-    await api.post<Task>(`/projects/${projectId}/tasks`, { title: newTitle() });
+    await api.post<Task>(`/projects/${projectId}/tasks`, {
+      title: newTitle(),
+      description: newDescription() || undefined,
+      priority: newPriority(),
+    });
     newTitle.set("");
-    showForm.set(false);
+    newDescription.set("");
+    newPriority.set("medium");
+    close();
     await load();
   };
+
+  const drawer = Drawer("New Task", (close) =>
+    h(
+      "form.stack.gap-4",
+      { onsubmit: (e: Event) => createTask(e, close) },
+      h(
+        "div.field",
+        {},
+        h("label", {}, "Title"),
+        h("input.input", {
+          placeholder: "Task title",
+          value: newTitle(),
+          oninput: (e: Event) => newTitle.set((e.target as HTMLInputElement).value),
+        }),
+      ),
+      h(
+        "div.field",
+        {},
+        h("label", {}, "Description (optional)"),
+        h("textarea.input", {
+          rows: 4,
+          value: newDescription(),
+          oninput: (e: Event) => newDescription.set((e.target as HTMLTextAreaElement).value),
+        }),
+      ),
+      h(
+        "div.field",
+        {},
+        h("label", {}, "Priority"),
+        h(
+          "select.input",
+          { onchange: (e: Event) => newPriority.set((e.target as HTMLSelectElement).value) },
+          h("option", { value: "low" }, "Low"),
+          h("option", { value: "medium", selected: true }, "Medium"),
+          h("option", { value: "high" }, "High"),
+          h("option", { value: "urgent" }, "Urgent"),
+        ),
+      ),
+      h(
+        "div.drawer-footer",
+        { style: { padding: "0", borderTop: "none", marginTop: "8px" } },
+        h("button.btn.btn-secondary", { type: "button", onclick: close }, "Cancel"),
+        h("button.btn.btn-primary", { type: "submit" }, "Create Task"),
+      ),
+    ),
+  );
 
   const moveTask = async (task: Task, status: string) => {
     await api.patch<Task>(`/projects/${projectId}/tasks/${task.id}`, { status });
@@ -64,20 +119,9 @@ export function ProjectPage(params: Record<string, string>): Node {
       ),
       h(
         "button.btn.btn-primary",
-        { onclick: () => showForm.set(!showForm()) },
+        { onclick: () => drawer.open() },
+        icons.plus(16),
         "New task",
-      ),
-    ),
-    when(showForm, () =>
-      h(
-        "form.card.row.gap-3",
-        { style: { margin: "16px 24px", padding: "16px" }, onsubmit: createTask },
-        h("input.input.grow", {
-          placeholder: "Task title",
-          value: newTitle(),
-          oninput: (e: Event) => newTitle.set((e.target as HTMLInputElement).value),
-        }),
-        h("button.btn.btn-primary", { type: "submit" }, "Add"),
       ),
     ),
     h(

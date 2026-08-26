@@ -74,3 +74,20 @@ pub struct UpdateTaskRequest {
     pub priority: Option<String>,
     pub assignee_id: Option<String>,
 }
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct Workspace {
+    pub id: String,
+    pub key: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateWorkspaceRequest {
+    pub key: String,
+    pub name: String,
+    pub description: Option<String>,
+}

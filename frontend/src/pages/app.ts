@@ -15,6 +15,7 @@ import { CyclesPage } from "./cycles.js";
 import { ModulesPage } from "./modules.js";
 import { SettingsPage } from "./settings.js";
 import { PomodoroPage } from "./pomodoro.js";
+import { WorkspacesPage } from "./workspaces.js";
 
 const NAV_ITEMS = [
   { path: "/", icon: icons.grid, label: "Dashboard" },
@@ -56,9 +57,12 @@ export function App(): Node {
     { pattern: "/modules", render: () => guarded(currentUser, () => ModulesPage()) },
     { pattern: "/pomodoro", render: () => guarded(currentUser, () => PomodoroPage()) },
     { pattern: "/settings", render: () => guarded(currentUser, () => SettingsPage(currentUser)) },
+    {
+      pattern: "/workspaces",
+      render: () => guarded(currentUser, () => adminGuarded(currentUser, () => WorkspacesPage())),
+    },
   ];
 
-  const content = router(routes, () => h("div", { style: { padding: "24px" } }, "Not found"));
   const displayName = computed(() => currentUser()?.display_name ?? "");
   const initials = computed(() => {
     const name = currentUser()?.display_name ?? "";
@@ -75,8 +79,11 @@ export function App(): Node {
     { id: "app" },
     when(
       authChecked,
-      () =>
-        h(
+      // Built only once authChecked is true, so `guarded`/`adminGuarded` see the resolved
+      // currentUser instead of racing the in-flight /auth/me request on a hard page load.
+      () => {
+        const content = router(routes, () => h("div", { style: { padding: "24px" } }, "Not found"));
+        return h(
           "div.stack",
           { style: { minHeight: "100vh" } },
           when(
@@ -85,7 +92,7 @@ export function App(): Node {
               h(
                 "div.shell",
                 {},
-                Sidebar(),
+                Sidebar(currentUser),
                 h(
                   "div.shell-main",
                   {},
@@ -95,13 +102,15 @@ export function App(): Node {
               ),
             () => h("div.stack", { style: { minHeight: "100vh" } }, content),
           ),
-        ),
+        );
+      },
       () => h("div", { style: { padding: "24px" } }, "Loading…"),
     ),
   );
 }
 
-function Sidebar(): Node {
+function Sidebar(currentUser: ReturnType<typeof signal<User | null>>): Node {
+  const isAdmin = computed(() => currentUser()?.system_role === "admin");
   return h(
     "aside.sidebar",
     {},
@@ -118,6 +127,17 @@ function Sidebar(): Node {
             class: computed(() => (isActive(item.path) ? "active" : "")),
           },
           item.icon(20),
+        ),
+      ),
+      when(isAdmin, () =>
+        h(
+          "a.sidebar-icon",
+          {
+            href: "/workspaces",
+            title: "Workspaces (admin)",
+            class: computed(() => (isActive("/workspaces") ? "active" : "")),
+          },
+          icons.building(20),
         ),
       ),
     ),
@@ -205,6 +225,16 @@ function Topbar(
               icons.settings(16),
               "Settings",
             ),
+            when(
+              computed(() => currentUser()?.system_role === "admin"),
+              () =>
+                h(
+                  "a.dropdown-item",
+                  { href: "/workspaces", onclick: close },
+                  icons.building(16),
+                  "Workspaces",
+                ),
+            ),
             h("div.dropdown-divider", {}),
             h(
               "button.dropdown-item.danger",
@@ -258,6 +288,14 @@ function ThemeMenu(): Node {
 function guarded(currentUser: ReturnType<typeof signal<User | null>>, render: () => Node): Node {
   if (!currentUser()) {
     navigate("/login");
+    return document.createComment("redirecting");
+  }
+  return render();
+}
+
+function adminGuarded(currentUser: ReturnType<typeof signal<User | null>>, render: () => Node): Node {
+  if (currentUser()?.system_role !== "admin") {
+    navigate("/");
     return document.createComment("redirecting");
   }
   return render();
