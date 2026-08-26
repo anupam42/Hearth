@@ -81,13 +81,15 @@ Things that exist partway — either scaffolded with no route/UI, or UI-only wit
 
 Rough near-term priorities, roughly in order:
 
-1. Wire labels end-to-end (routes + task board UI) — the schema's already there.
-2. Link projects to workspaces (`workspace_id` + migration) and make the workspace toggle actually filter.
-3. A real "my tasks" endpoint for the dashboard's "Assigned to You" section.
-4. Persist Personal Access Tokens server-side (hashed, scoped read/read-write, actually usable as a bearer token against `/api`).
-5. Move Pomodoro subtasks/attached-task from `localStorage` onto the task model, so a focus session can genuinely tie back to a real task.
-6. Drag-and-drop on the task board (react to reordering, not just the status `<select>`).
-7. Real-time updates (SSE or WebSocket) so multiple people looking at the same project see changes live — the audit log already has the event stream to hang this off of.
+1. **Audit trail UI** — `GET /api/audit` and `/api/audit/verify` are fully implemented backend-side and have *no frontend consumer at all*. This is close to free value: a project activity feed + a "verify integrity" button is mostly wiring, not new backend work.
+2. **Account settings** — there's currently no way to edit your own display name, email, or password after registering, and no route for it. Basic but missing.
+3. Wire labels end-to-end (routes + task board UI) — the schema's already there.
+4. Link projects to workspaces (`workspace_id` + migration) and make the workspace toggle actually filter.
+5. A real "my tasks" endpoint for the dashboard's "Assigned to You" section.
+6. Persist Personal Access Tokens server-side (hashed, scoped read/read-write, actually usable as a bearer token against `/api`).
+7. Move Pomodoro subtasks/attached-task from `localStorage` onto the task model, so a focus session can genuinely tie back to a real task.
+8. Drag-and-drop on the task board (react to reordering, not just the status `<select>`).
+9. Real-time updates (SSE or WebSocket) so multiple people looking at the same project see changes live — the audit log already has the event stream to hang this off of.
 
 ### Pro / stretch ideas
 
@@ -100,6 +102,18 @@ Bigger swings, no particular order:
 - **Role-based project permissions UI** — `project_members.role` (`guest`/`member`/`admin`) exists in the schema but there's no UI to manage it per-project.
 - **Exportable audit trail** (CSV/JSON download of the hash-chained log) for compliance use cases — pairs with the existing `/api/audit/verify` integrity check.
 - **Mobile-optimized layouts** beyond the current responsive breakpoints (a real PWA manifest + offline shell).
+- **Task comments / activity feed** — threaded discussion per task, stored server-side, surfaced in a task-detail drawer (the `Drawer` component already exists for this).
+- **File attachments on tasks** — upload to local disk or S3-compatible storage, linked via a new table; shown alongside comments.
+- **Real notifications** — the topbar bell is currently decorative. A `notifications` table + read/unread state, populated on assignment/comment/mention, would make it real.
+- **@mentions** in task descriptions/comments, parsed server-side, feeding the notification system above.
+- **Task dependencies** ("blocked by" / "blocks" links between tasks), visualized on the board.
+- **Time tracking tied to Pomodoro** — let a focus session log against a specific task (depends on the Pomodoro-subtasks-to-backend roadmap item above), with a per-task/per-project time report.
+- **Custom fields per project** — admin-defined extra fields on tasks (text/select/number), stored as JSON or an EAV table.
+- **Functional saved Views** — the "Views" nav page is currently an empty state; persisting a named filter/sort combination server-side (with a shareable link) would make it real.
+- **Bulk task operations** — multi-select on the board, bulk status/assignee/label change in one request.
+- **Command palette (⌘K)** — quick navigate-to-project/task and run-action UI; a natural frontend pairing for the full-text search item above.
+- **Two-factor authentication (TOTP)** — backend secret generation/verification + a frontend QR-code setup flow.
+- **Project/task templates** — spin up a new project pre-populated with a standard task/column set.
 
 ## Deployment
 
