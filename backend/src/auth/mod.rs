@@ -14,7 +14,10 @@ use std::sync::OnceLock;
 use crate::AppState;
 
 pub const SESSION_COOKIE: &str = "hearth_session";
-const SESSION_TTL_SECS: i64 = 60 * 60 * 24 * 7;
+/// How long a single session token stays valid without being refreshed — the idle timeout.
+const IDLE_TTL_SECS: i64 = 45 * 60;
+/// Hard ceiling on a session's total lifetime from original login, regardless of activity.
+pub const ABSOLUTE_TTL_SECS: i64 = 60 * 60 * 24 * 7;
 
 fn jwt_secret() -> &'static str {
     static SECRET: OnceLock<String> = OnceLock::new();
@@ -51,6 +54,12 @@ pub struct Claims {
     pub sub: String,
     pub email: String,
     pub system_role: String,
+    /// Original login time — carried forward unchanged across refreshes, used to enforce
+    /// `ABSOLUTE_TTL_SECS` regardless of how active the session has been.
+    pub iat: i64,
+    /// Whether this session should persist across browser restarts — also carried forward,
+    /// since the browser never echoes back a cookie's original `Max-Age` for us to check.
+    pub remember: bool,
     pub exp: i64,
 }
 
@@ -71,15 +80,14 @@ pub fn verify_password(password: &str, hash: &str) -> bool {
         .is_ok()
 }
 
-/// Issues a session cookie. When `remember` is false, the cookie carries no
-/// `Max-Age` and is dropped by the browser when it closes (still valid for the
-/// full TTL server-side in the meantime, since that's encoded in the JWT itself).
-pub fn issue_session_cookie(user_id: &str, email: &str, system_role: &str, remember: bool) -> Cookie<'static> {
-    let exp = chrono::Utc::now().timestamp() + SESSION_TTL_SECS;
+fn build_session_cookie(user_id: &str, email: &str, system_role: &str, iat: i64, remember: bool) -> Cookie<'static> {
+    let exp = chrono::Utc::now().timestamp() + IDLE_TTL_SECS;
     let claims = Claims {
         sub: user_id.to_string(),
         email: email.to_string(),
         system_role: system_role.to_string(),
+        iat,
+        remember,
         exp,
     };
     let token = encode(
@@ -89,14 +97,39 @@ pub fn issue_session_cookie(user_id: &str, email: &str, system_role: &str, remem
     )
     .expect("jwt encode");
 
+    // Max-Age governs whether the *cookie* survives a browser restart ("remember me");
+    // the token's own `exp` (above) is what actually governs server-side validity, and
+    // slides forward independently each time `/auth/refresh` is called.
     let mut builder = Cookie::build((SESSION_COOKIE, token))
         .path("/")
         .http_only(true)
         .same_site(cookie::SameSite::Lax);
     if remember {
-        builder = builder.max_age(cookie::time::Duration::seconds(SESSION_TTL_SECS));
+        builder = builder.max_age(cookie::time::Duration::seconds(ABSOLUTE_TTL_SECS));
     }
     builder.build()
+}
+
+/// Issues a fresh session cookie at login/register time — `iat` is now.
+pub fn issue_session_cookie(user_id: &str, email: &str, system_role: &str, remember: bool) -> Cookie<'static> {
+    build_session_cookie(user_id, email, system_role, chrono::Utc::now().timestamp(), remember)
+}
+
+/// Reissues a session cookie from a still-valid token's claims, sliding `exp` forward
+/// while keeping the original `iat` — so `ABSOLUTE_TTL_SECS` still applies from real login.
+pub fn refresh_session_cookie(claims: &Claims) -> Cookie<'static> {
+    build_session_cookie(&claims.sub, &claims.email, &claims.system_role, claims.iat, claims.remember)
+}
+
+/// Decodes and validates a session token (checks signature + `exp`, i.e. the idle timeout).
+pub fn decode_session_token(token: &str) -> Option<Claims> {
+    decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(jwt_secret().as_bytes()),
+        &Validation::default(),
+    )
+    .ok()
+    .map(|data| data.claims)
 }
 
 pub fn clear_session_cookie() -> Cookie<'static> {
@@ -123,15 +156,11 @@ impl FromRequestParts<AppState> for CurrentUser {
         // CookieJar's extraction is infallible (it just reads headers).
         let jar = CookieJar::from_request_parts(parts, state).await.unwrap();
         if let Some(cookie) = jar.get(SESSION_COOKIE) {
-            if let Ok(data) = decode::<Claims>(
-                cookie.value(),
-                &DecodingKey::from_secret(jwt_secret().as_bytes()),
-                &Validation::default(),
-            ) {
+            if let Some(claims) = decode_session_token(cookie.value()) {
                 return Ok(CurrentUser {
-                    id: data.claims.sub,
-                    email: data.claims.email,
-                    system_role: data.claims.system_role,
+                    id: claims.sub,
+                    email: claims.email,
+                    system_role: claims.system_role,
                 });
             }
         }

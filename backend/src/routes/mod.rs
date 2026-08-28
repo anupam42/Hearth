@@ -22,6 +22,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/auth/register", post(auth::register).layer(auth_rate_limit.clone()))
         .route("/auth/login", post(auth::login).layer(auth_rate_limit))
         .route("/auth/logout", post(auth::logout))
+        .route("/auth/refresh", post(auth::refresh))
         .route("/auth/me", get(auth::me).patch(auth::update_profile))
         .route("/projects", get(projects::list).post(projects::create))
         .route("/projects/:project_id", get(projects::get))

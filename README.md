@@ -10,6 +10,7 @@ At-a-glance picture of what's real vs. what's still a placeholder. Checked = bui
 
 - [x] Password auth (register/login/logout), argon2 hashing
 - [x] Session cookies (JWT) with "remember me" (persistent vs. session-only cookie)
+- [x] Sliding session expiration — 45-min idle timeout, `/auth/refresh` slides it forward, 7-day absolute cap from original login regardless of activity
 - [x] Personal access tokens — create/list/revoke, bearer auth, `read` vs `read_write` enforced
 - [x] Rate limiting on `/auth/login` + `/auth/register` (in-memory, per-IP)
 - [x] CORS allow-list via `HEARTH_CORS_ORIGINS`, warns on the permissive fallback
@@ -33,13 +34,17 @@ At-a-glance picture of what's real vs. what's still a placeholder. Checked = bui
 - [x] Dashboard, Projects list, Project task board
 - [x] Workspaces page (admin-only nav gating)
 - [x] Views / Cycles / Modules — empty-state pages
-- [x] Settings page — PAT UI is **client-only right now**, doesn't call the real `/tokens` endpoints
+- [x] Settings page — real PAT create/list/revoke, wired to `/tokens`, one-time secret reveal with copy-to-clipboard
 - [x] Pomodoro — dot-matrix timer, real localStorage-backed analytics, subtasks (client-only)
 - [x] Light/dark/system theme, light as the default
 - [x] Slide-in Drawer used for every creation flow (projects, tasks, workspaces, tokens)
 - [x] Brand color system + mascot icon/favicon
 - [x] Hot-reload dev server
-- [ ] Wire Settings to the real PAT endpoints (`GET`/`POST /tokens`, `DELETE /tokens/:id`)
+- [x] Branded loading screen (pulsing mascot) for the initial auth check
+- [x] 404 / 403 / 500 error pages — real mascot illustration, subtle float animation; 403 fires on admin-gated routes, 500 fires on genuine backend/gateway unreachability (tested by killing the backend)
+- [x] Toast notification system — success/error/warning/info, enter/exit animations, "click to stop" auto-dismiss, wired into project/task/workspace/token create flows
+- [x] Notification position setting (Settings page, 4-corner picker, persisted, live preview button)
+- [x] Sliding-session client — tracks real activity, calls `/auth/refresh` every ~10 min while active; a genuine 401 while logged in clears state, redirects to `/login`, and shows a "signed out" toast
 - [ ] Wire dashboard "Assigned to You" to `GET /tasks/mine`
 - [ ] Label picker / assignment on the task board
 - [ ] Wire the "Showing all workspaces" toggle to `?workspace_id=`
@@ -47,7 +52,7 @@ At-a-glance picture of what's real vs. what's still a placeholder. Checked = bui
 - [ ] Audit trail UI — `GET /audit` and `/audit/verify` have no frontend consumer at all
 - [ ] Drag-and-drop task board (status changes only via `<select>` today)
 - [ ] Real-time updates (SSE/WebSocket)
-- [ ] Functional search / notifications — topbar icons are decorative
+- [ ] Functional search — topbar search icon and bell are still decorative (bell will make sense once the notifications backend from the Pro/stretch list exists)
 
 ### Ops & deployment
 
@@ -126,7 +131,7 @@ Run `npm run build` in `frontend/` before `cargo run`/`cargo build` in `backend/
 
 Two ways to authenticate against `/api`:
 
-- **Session cookie** — issued by `POST /api/auth/login` (or `/auth/register`). Pass `"remember": false` in the login body for a browser-session-only cookie instead of the default 7-day persistent one.
+- **Session cookie** — issued by `POST /api/auth/login` (or `/auth/register`). Pass `"remember": false` in the login body for a browser-session-only cookie instead of the default persistent one. The token itself carries a **45-minute idle timeout** independent of the cookie's own lifetime — call `POST /api/auth/refresh` (with the current, still-valid cookie) to slide it forward another 45 minutes. There's also a **7-day absolute cap** from the original login that refreshing can't extend, so an always-active session still eventually needs a real re-login. The frontend does this automatically: it tracks real user activity and calls `/auth/refresh` every ~10 minutes while active, so in practice you only see the 45-minute window if you actually walk away.
 - **Personal access token** — `Authorization: Bearer <token>`. Create one with `POST /api/tokens` (`{ "name": "...", "permission": "read" | "read_write", "expires_at": "<RFC3339>" }`, optional expiry); the raw token is returned **once**, in the create response, and never again — only its SHA-256 hash is stored. `permission: "read"` tokens are rejected with `403` on anything but `GET`/`HEAD`. `GET /api/tokens` lists your tokens (metadata only); `DELETE /api/tokens/:id` revokes one immediately.
 
 `/api/auth/login` and `/api/auth/register` are rate-limited (10 attempts / 5 minutes / IP, in-memory — fine for a single instance, would need a shared store behind a load balancer).

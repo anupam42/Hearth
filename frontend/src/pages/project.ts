@@ -2,7 +2,8 @@ import { h, list } from "../core/dom.js";
 import { computed, signal } from "../core/reactive.js";
 import { Drawer } from "../core/drawer.js";
 import { icons } from "../core/icons.js";
-import { api, type Project, type Task } from "../api/client.js";
+import { toast } from "../core/toast.js";
+import { api, ApiError, type Project, type Task } from "../api/client.js";
 
 const COLUMNS = [
   { status: "open", label: "Open" },
@@ -32,16 +33,23 @@ export function ProjectPage(params: Record<string, string>): Node {
   const createTask = async (e: Event, close: () => void) => {
     e.preventDefault();
     if (!newTitle()) return;
-    await api.post<Task>(`/projects/${projectId}/tasks`, {
-      title: newTitle(),
-      description: newDescription() || undefined,
-      priority: newPriority(),
-    });
-    newTitle.set("");
-    newDescription.set("");
-    newPriority.set("medium");
-    close();
-    await load();
+    try {
+      const task = await api.post<Task>(`/projects/${projectId}/tasks`, {
+        title: newTitle(),
+        description: newDescription() || undefined,
+        priority: newPriority(),
+      });
+      newTitle.set("");
+      newDescription.set("");
+      newPriority.set("medium");
+      close();
+      await load();
+      toast.success("Task created", { message: `${task.display_id} — ${task.title}` });
+    } catch (err) {
+      toast.error("Couldn't create task", {
+        message: err instanceof ApiError ? err.message : "Something went wrong.",
+      });
+    }
   };
 
   const drawer = Drawer("New Task", (close) =>

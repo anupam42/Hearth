@@ -81,6 +81,22 @@ pub async fn logout() -> impl IntoResponse {
     (jar, Json(serde_json::json!({ "ok": true })))
 }
 
+/// Slides the session's idle timeout forward. Requires a still-valid (non-expired) session
+/// cookie — an already-expired token can't refresh itself, which is the point: the caller
+/// must call this *while* the session is active, not after it's gone idle.
+pub async fn refresh(jar: CookieJar) -> AppResult<impl IntoResponse> {
+    let cookie = jar.get(auth::SESSION_COOKIE).ok_or(AppError::Unauthorized)?;
+    let claims = auth::decode_session_token(cookie.value()).ok_or(AppError::Unauthorized)?;
+
+    let now = chrono::Utc::now().timestamp();
+    if now - claims.iat > auth::ABSOLUTE_TTL_SECS {
+        return Err(AppError::Unauthorized);
+    }
+
+    let new_jar = CookieJar::new().add(auth::refresh_session_cookie(&claims));
+    Ok((new_jar, Json(serde_json::json!({ "ok": true }))))
+}
+
 pub async fn me(current_user: CurrentUser, State(state): State<AppState>) -> AppResult<impl IntoResponse> {
     let user: User = sqlx::query_as(
         "SELECT id, email, display_name, system_role, password_hash, created_at FROM users WHERE id = ?",

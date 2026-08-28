@@ -1,10 +1,14 @@
 import { h, when } from "../core/dom.js";
-import { computed, signal } from "../core/reactive.js";
+import { computed, effect, signal } from "../core/reactive.js";
 import { installLinkInterceptor, navigate, router, currentPath } from "../core/router.js";
 import { Dropdown } from "../core/dropdown.js";
 import { icons } from "../core/icons.js";
 import { setTheme, themePref, type ThemePref } from "../core/theme.js";
-import { api, type User } from "../api/client.js";
+import { LoadingScreen } from "../core/loading.js";
+import { ForbiddenPage, NotFoundPage, ServerErrorPage } from "../core/error-page.js";
+import { ToastContainer, toast } from "../core/toast.js";
+import { startSessionTracking } from "../core/session.js";
+import { api, apiDown, unauthorized, type User } from "../api/client.js";
 import { LoginPage } from "./login.js";
 import { RegisterPage } from "./register.js";
 import { DashboardPage } from "./dashboard.js";
@@ -30,12 +34,43 @@ export function App(): Node {
   const authChecked = signal(false);
 
   installLinkInterceptor();
+  startSessionTracking();
 
-  api
-    .get<User>("/auth/me")
-    .then((u) => currentUser.set(u))
-    .catch(() => currentUser.set(null))
-    .finally(() => authChecked.set(true));
+  // Every path that lands currentUser on a real, logged-in value must clear any stale
+  // `unauthorized` flag first — otherwise a 401 from *before* login (the anonymous bootstrap
+  // check, a failed login attempt) lingers and immediately false-triggers the effect below.
+  const setAuthenticated = (u: User) => {
+    unauthorized.set(false);
+    currentUser.set(u);
+  };
+
+  // A 401 only means "your session actually expired" if we thought we were logged in —
+  // otherwise it's just the normal result of checking auth state while logged out.
+  effect(() => {
+    if (unauthorized() && currentUser()) {
+      currentUser.set(null);
+      unauthorized.set(false);
+      navigate("/login");
+      toast.warning("You've been signed out", {
+        message: "Your session expired from inactivity. Please sign in again.",
+      });
+    }
+  });
+
+  // On a fast connection /auth/me can resolve in under a millisecond, which would make
+  // the branded loading screen an imperceptible flash. Hold it for a minimum stretch so
+  // it actually reads as part of the experience rather than technically-correct-but-invisible.
+  const MIN_LOADING_MS = 400;
+  const minDelay = new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS));
+
+  Promise.all([
+    api
+      .get<User>("/auth/me")
+      .then((u) => setAuthenticated(u))
+      .catch(() => currentUser.set(null))
+      .finally(() => unauthorized.set(false)),
+    minDelay,
+  ]).finally(() => authChecked.set(true));
 
   const logout = async () => {
     await api.post("/auth/logout");
@@ -44,8 +79,8 @@ export function App(): Node {
   };
 
   const routes = [
-    { pattern: "/login", render: () => LoginPage((u) => currentUser.set(u)) },
-    { pattern: "/register", render: () => RegisterPage((u) => currentUser.set(u)) },
+    { pattern: "/login", render: () => LoginPage(setAuthenticated) },
+    { pattern: "/register", render: () => RegisterPage(setAuthenticated) },
     { pattern: "/", render: () => guarded(currentUser, () => DashboardPage()) },
     { pattern: "/projects", render: () => guarded(currentUser, () => ProjectsPage()) },
     {
@@ -77,34 +112,40 @@ export function App(): Node {
   return h(
     "div",
     { id: "app" },
+    ToastContainer(),
     when(
-      authChecked,
-      // Built only once authChecked is true, so `guarded`/`adminGuarded` see the resolved
-      // currentUser instead of racing the in-flight /auth/me request on a hard page load.
-      () => {
-        const content = router(routes, () => h("div", { style: { padding: "24px" } }, "Not found"));
-        return h(
-          "div.stack",
-          { style: { minHeight: "100vh" } },
-          when(
-            currentUser,
-            () =>
-              h(
-                "div.shell",
-                {},
-                Sidebar(currentUser),
-                h(
-                  "div.shell-main",
-                  {},
-                  Topbar(displayName, initials, currentUser, logout),
-                  content,
-                ),
+      apiDown,
+      () => ServerErrorPage(() => window.location.reload()),
+      () =>
+        when(
+          authChecked,
+          // Built only once authChecked is true, so `guarded`/`adminGuarded` see the resolved
+          // currentUser instead of racing the in-flight /auth/me request on a hard page load.
+          () => {
+            const content = router(routes, () => NotFoundPage());
+            return h(
+              "div.stack",
+              { style: { minHeight: "100vh" } },
+              when(
+                currentUser,
+                () =>
+                  h(
+                    "div.shell",
+                    {},
+                    Sidebar(currentUser),
+                    h(
+                      "div.shell-main",
+                      {},
+                      Topbar(displayName, initials, currentUser, logout),
+                      content,
+                    ),
+                  ),
+                () => h("div.stack", { style: { minHeight: "100vh" } }, content),
               ),
-            () => h("div.stack", { style: { minHeight: "100vh" } }, content),
-          ),
-        );
-      },
-      () => h("div", { style: { padding: "24px" } }, "Loading…"),
+            );
+          },
+          () => LoadingScreen(),
+        ),
     ),
   );
 }
@@ -300,8 +341,7 @@ function guarded(currentUser: ReturnType<typeof signal<User | null>>, render: ()
 
 function adminGuarded(currentUser: ReturnType<typeof signal<User | null>>, render: () => Node): Node {
   if (currentUser()?.system_role !== "admin") {
-    navigate("/");
-    return document.createComment("redirecting");
+    return ForbiddenPage();
   }
   return render();
 }

@@ -3,7 +3,8 @@ import { computed, signal } from "../core/reactive.js";
 import { icons } from "../core/icons.js";
 import { EmptyState } from "../core/empty-state.js";
 import { Drawer } from "../core/drawer.js";
-import { api, type Workspace } from "../api/client.js";
+import { toast } from "../core/toast.js";
+import { api, ApiError, type Workspace } from "../api/client.js";
 
 export function WorkspacesPage(): Node {
   const workspaces = signal<Workspace[]>([]);
@@ -20,16 +21,23 @@ export function WorkspacesPage(): Node {
   const createWorkspace = async (e: Event, close: () => void) => {
     e.preventDefault();
     if (!newKey() || !newName()) return;
-    await api.post<Workspace>("/workspaces", {
-      key: newKey(),
-      name: newName(),
-      description: newDescription() || undefined,
-    });
-    newKey.set("");
-    newName.set("");
-    newDescription.set("");
-    close();
-    await load();
+    try {
+      const workspace = await api.post<Workspace>("/workspaces", {
+        key: newKey(),
+        name: newName(),
+        description: newDescription() || undefined,
+      });
+      newKey.set("");
+      newName.set("");
+      newDescription.set("");
+      close();
+      await load();
+      toast.success("Workspace created", { message: `${workspace.key} — ${workspace.name}` });
+    } catch (err) {
+      toast.error("Couldn't create workspace", {
+        message: err instanceof ApiError ? err.message : "Something went wrong.",
+      });
+    }
   };
 
   const drawer = Drawer("New Workspace", (close) =>

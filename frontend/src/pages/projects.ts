@@ -3,7 +3,8 @@ import { computed, signal } from "../core/reactive.js";
 import { icons } from "../core/icons.js";
 import { EmptyState } from "../core/empty-state.js";
 import { Drawer } from "../core/drawer.js";
-import { api, type Project } from "../api/client.js";
+import { toast } from "../core/toast.js";
+import { api, ApiError, type Project } from "../api/client.js";
 
 export function ProjectsPage(): Node {
   const projects = signal<Project[]>([]);
@@ -21,16 +22,23 @@ export function ProjectsPage(): Node {
   const createProject = async (e: Event, close: () => void) => {
     e.preventDefault();
     if (!newKey() || !newName()) return;
-    await api.post<Project>("/projects", {
-      key: newKey(),
-      name: newName(),
-      description: newDescription() || undefined,
-    });
-    newKey.set("");
-    newName.set("");
-    newDescription.set("");
-    close();
-    await load();
+    try {
+      const project = await api.post<Project>("/projects", {
+        key: newKey(),
+        name: newName(),
+        description: newDescription() || undefined,
+      });
+      newKey.set("");
+      newName.set("");
+      newDescription.set("");
+      close();
+      await load();
+      toast.success("Project created", { message: `${project.key} — ${project.name}` });
+    } catch (err) {
+      toast.error("Couldn't create project", {
+        message: err instanceof ApiError ? err.message : "Something went wrong.",
+      });
+    }
   };
 
   const drawer = Drawer("New Project", (close) =>
