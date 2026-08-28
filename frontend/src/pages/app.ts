@@ -5,6 +5,7 @@ import { Dropdown } from "../core/dropdown.js";
 import { icons } from "../core/icons.js";
 import { setTheme, themePref, type ThemePref } from "../core/theme.js";
 import { LoadingScreen } from "../core/loading.js";
+import { ConfettiBurst } from "../core/confetti.js";
 import { ForbiddenPage, NotFoundPage, ServerErrorPage } from "../core/error-page.js";
 import { ToastContainer, toast } from "../core/toast.js";
 import { startSessionTracking } from "../core/session.js";
@@ -20,6 +21,7 @@ import { ModulesPage } from "./modules.js";
 import { SettingsPage } from "./settings.js";
 import { PomodoroPage } from "./pomodoro.js";
 import { WorkspacesPage } from "./workspaces.js";
+import { AuditPage } from "./audit.js";
 
 const NAV_ITEMS = [
   { path: "/", icon: icons.grid, label: "Dashboard" },
@@ -60,7 +62,7 @@ export function App(): Node {
   // On a fast connection /auth/me can resolve in under a millisecond, which would make
   // the branded loading screen an imperceptible flash. Hold it for a minimum stretch so
   // it actually reads as part of the experience rather than technically-correct-but-invisible.
-  const MIN_LOADING_MS = 400;
+  const MIN_LOADING_MS = 800;
   const minDelay = new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS));
 
   Promise.all([
@@ -79,8 +81,8 @@ export function App(): Node {
   };
 
   const routes = [
-    { pattern: "/login", render: () => LoginPage(setAuthenticated) },
-    { pattern: "/register", render: () => RegisterPage(setAuthenticated) },
+    { pattern: "/login", render: () => guestOnly(currentUser, () => LoginPage(setAuthenticated)) },
+    { pattern: "/register", render: () => guestOnly(currentUser, () => RegisterPage(setAuthenticated)) },
     { pattern: "/", render: () => guarded(currentUser, () => DashboardPage()) },
     { pattern: "/projects", render: () => guarded(currentUser, () => ProjectsPage()) },
     {
@@ -95,6 +97,10 @@ export function App(): Node {
     {
       pattern: "/workspaces",
       render: () => guarded(currentUser, () => adminGuarded(currentUser, () => WorkspacesPage())),
+    },
+    {
+      pattern: "/audit",
+      render: () => guarded(currentUser, () => adminGuarded(currentUser, () => AuditPage())),
     },
   ];
 
@@ -158,7 +164,12 @@ function Sidebar(currentUser: ReturnType<typeof signal<User | null>>): Node {
     h(
       "a.sidebar-brand",
       { href: "/", title: "Hearth" },
-      h("img", { src: "/icon.svg", alt: "Hearth", width: 26, height: 26 }),
+      h(
+        "div.sidebar-brand-icon-wrap",
+        {},
+        ...ConfettiBurst(),
+        h("img.sidebar-brand-icon", { src: "/icon.svg", alt: "Hearth", width: 26, height: 26 }),
+      ),
     ),
     h(
       "nav.sidebar-nav",
@@ -185,27 +196,29 @@ function Sidebar(currentUser: ReturnType<typeof signal<User | null>>): Node {
           icons.building(20),
         ),
       ),
+      when(isAdmin, () =>
+        h(
+          "a.sidebar-icon",
+          {
+            href: "/audit",
+            title: "Audit Trail (admin)",
+            class: computed(() => (isActive("/audit") ? "active" : "")),
+          },
+          icons.shield(20),
+        ),
+      ),
     ),
     h(
       "div.sidebar-nav-bottom",
       {},
       h(
-        "a.sidebar-icon",
+        "a.sidebar-icon.sidebar-icon-highlight",
         {
           href: "/pomodoro",
           title: "Pomodoro",
           class: computed(() => (isActive("/pomodoro") ? "active" : "")),
         },
         icons.timer(20),
-      ),
-      h(
-        "a.sidebar-icon",
-        {
-          href: "/settings",
-          title: "Settings",
-          class: computed(() => (isActive("/settings") ? "active" : "")),
-        },
-        icons.settings(20),
       ),
     ),
   );
@@ -229,8 +242,8 @@ function Topbar(
     h(
       "div.topbar-actions",
       {},
-      h("button.topbar-icon-btn", { title: "Notifications" }, icons.bell(18)),
-      h("a.topbar-icon-btn", { href: "/settings", title: "Settings" }, icons.settings(18)),
+      h("button.topbar-icon-btn.icon-btn-bell", { title: "Notifications" }, icons.bell(18)),
+      h("a.topbar-icon-btn.icon-btn-gear", { href: "/settings", title: "Settings" }, icons.settings(18)),
       ThemeMenu(),
       h("div.topbar-divider", {}),
       Dropdown(
@@ -277,7 +290,7 @@ const THEME_OPTIONS: { pref: ThemePref; label: string; icon: (size?: number) => 
 
 function ThemeMenu(): Node {
   return Dropdown(
-    (toggle) => h("button.topbar-icon-btn", { title: "Theme", onclick: toggle }, icons.moon(18)),
+    (toggle) => h("button.topbar-icon-btn.icon-btn-moon", { title: "Theme", onclick: toggle }, icons.moon(18)),
     (close) =>
       h(
         "div.dropdown-menu",
@@ -303,6 +316,14 @@ function ThemeMenu(): Node {
 function guarded(currentUser: ReturnType<typeof signal<User | null>>, render: () => Node): Node {
   if (!currentUser()) {
     navigate("/login");
+    return document.createComment("redirecting");
+  }
+  return render();
+}
+
+function guestOnly(currentUser: ReturnType<typeof signal<User | null>>, render: () => Node): Node {
+  if (currentUser()) {
+    navigate("/");
     return document.createComment("redirecting");
   }
   return render();

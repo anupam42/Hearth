@@ -4,15 +4,19 @@ use serde_json::json;
 
 use crate::auth::CurrentUser;
 use crate::error::{AppError, AppResult};
+use crate::models::AuditEntryView;
 use crate::AppState;
 
-pub async fn list(current_user: CurrentUser, State(state): State<AppState>) -> AppResult<Json<Vec<crate::audit::AuditEntry>>> {
+pub async fn list(current_user: CurrentUser, State(state): State<AppState>) -> AppResult<Json<Vec<AuditEntryView>>> {
     if current_user.system_role != "admin" {
         return Err(AppError::Forbidden);
     }
-    let entries: Vec<crate::audit::AuditEntry> = sqlx::query_as(
-        "SELECT id, actor_id, action, entity_type, entity_id, details, prev_hash, hash, created_at
-         FROM audit_log ORDER BY created_at DESC LIMIT 500",
+    let entries: Vec<AuditEntryView> = sqlx::query_as(
+        "SELECT a.id, a.actor_id, u.display_name as actor_name, u.email as actor_email,
+                a.action, a.entity_type, a.entity_id, a.details, a.prev_hash, a.hash, a.created_at
+         FROM audit_log a
+         LEFT JOIN users u ON u.id = a.actor_id
+         ORDER BY a.created_at DESC LIMIT 500",
     )
     .fetch_all(&state.db)
     .await?;

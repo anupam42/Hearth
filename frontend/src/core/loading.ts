@@ -1,4 +1,5 @@
 import { h } from "./dom.js";
+import { ConfettiBurst } from "./confetti.js";
 
 /** Full-screen branded loading state — mascot with a soft pulse + bouncing dots. */
 export function LoadingScreen(label = "Loading Hearth…"): Node {
@@ -9,6 +10,7 @@ export function LoadingScreen(label = "Loading Hearth…"): Node {
       "div.loading-mascot-wrap",
       {},
       h("div.loading-glow", {}),
+      ...ConfettiBurst({ large: true }),
       h("img.loading-mascot", { src: "/icon.svg", alt: "" }),
     ),
     h(

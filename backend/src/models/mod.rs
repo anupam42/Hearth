@@ -162,3 +162,20 @@ pub struct CreateAccessTokenResponse {
     /// The raw bearer token — returned exactly once, at creation time. Never stored or shown again.
     pub secret: String,
 }
+
+/// An audit log entry joined with the acting user's identity, for display purposes.
+/// `actor_name`/`actor_email` are `None` if the user no longer exists.
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct AuditEntryView {
+    pub id: String,
+    pub actor_id: String,
+    pub actor_name: Option<String>,
+    pub actor_email: Option<String>,
+    pub action: String,
+    pub entity_type: String,
+    pub entity_id: String,
+    pub details: String,
+    pub prev_hash: String,
+    pub hash: String,
+    pub created_at: DateTime<Utc>,
+}

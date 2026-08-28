@@ -157,6 +157,13 @@ export const icons = {
     icon(`<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="11"/><line x1="12" y1="8" x2="12" y2="8.01"/>`, size),
   xCircle: (size?: number) =>
     icon(`<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`, size),
+  shield: (size?: number) =>
+    icon(`<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/>`, size),
+  tag: (size?: number) =>
+    icon(
+      `<path d="M20.59 13.41 11 4H4v7l9.59 9.59a2 2 0 0 0 2.82 0l4.18-4.18a2 2 0 0 0 0-2.82z"/><circle cx="7.5" cy="7.5" r="1.2"/>`,
+      size,
+    ),
   home: (size?: number) =>
     icon(`<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>`, size),
   compass: (size?: number) =>
@@ -164,6 +171,21 @@ export const icons = {
   lightbulb: (size?: number) =>
     icon(
       `<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>`,
+      size,
+    ),
+  cloudRain: (size?: number) =>
+    icon(
+      `<path d="M17 15a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.6A3.5 3.5 0 0 0 7 15h10z"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="19" x2="12" y2="21"/><line x1="16" y1="19" x2="16" y2="21"/>`,
+      size,
+    ),
+  coffee: (size?: number) =>
+    icon(
+      `<path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><line x1="7" y1="2" x2="7" y2="4"/><line x1="11" y1="2" x2="11" y2="4"/>`,
+      size,
+    ),
+  tree: (size?: number) =>
+    icon(
+      `<path d="M12 2 6 10h3l-4 6h5v6h4v-6h5l-4-6h3z"/>`,
       size,
     ),
 };

@@ -93,6 +93,25 @@ export interface AccessToken {
   last_used_at: string | null;
 }
 
+export interface AuditEntry {
+  id: string;
+  actor_id: string;
+  actor_name: string | null;
+  actor_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  details: string;
+  prev_hash: string;
+  hash: string;
+  created_at: string;
+}
+
+export interface AuditVerifyResult {
+  intact: boolean;
+  error?: string;
+}
+
 export interface CreateAccessTokenResponse extends AccessToken {
   secret: string;
 }

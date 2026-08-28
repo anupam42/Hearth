@@ -35,7 +35,7 @@ At-a-glance picture of what's real vs. what's still a placeholder. Checked = bui
 - [x] Workspaces page (admin-only nav gating)
 - [x] Views / Cycles / Modules — empty-state pages
 - [x] Settings page — categorized layout (left nav + section cards: Notifications, Personal Access Tokens); PAT create/list/revoke wired to `/tokens`, one-time secret reveal with copy-to-clipboard
-- [x] Pomodoro — dot-matrix timer, real localStorage-backed analytics, subtasks (client-only)
+- [x] Pomodoro — three real modes (fixed-cycle Pomodoro, preset Countdown, open-ended Tracking stopwatch), dot-matrix timer, real localStorage-backed analytics, subtasks (client-only)
 - [x] Light/dark/system theme, light as the default
 - [x] Slide-in Drawer used for every creation flow (projects, tasks, workspaces, tokens)
 - [x] Brand color system + mascot icon/favicon
@@ -49,7 +49,7 @@ At-a-glance picture of what's real vs. what's still a placeholder. Checked = bui
 - [ ] Label picker / assignment on the task board
 - [ ] Wire the "Showing all workspaces" toggle to `?workspace_id=`
 - [ ] Account-settings page wired to `PATCH /auth/me` (no edit-profile UI exists yet)
-- [ ] Audit trail UI — `GET /audit` and `/audit/verify` have no frontend consumer at all
+- [x] Audit trail UI — admin-only feed with real actor names (`GET /audit` now joins `users`), relative timestamps, per-action icons, truncated hash badges, and a "Verify Integrity" button wired to `/audit/verify` (tested against real tampering — corrupted a row directly in SQLite and confirmed the UI correctly reported the exact broken entry, then restored it)
 - [ ] Drag-and-drop task board (status changes only via `<select>` today)
 - [ ] Real-time updates (SSE/WebSocket)
 - [ ] Functional search — topbar search icon and bell are still decorative (bell will make sense once the notifications backend from the Pro/stretch list exists)
