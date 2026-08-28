@@ -51,16 +51,38 @@ export function router(routes: Route[], notFound: () => Node): Node {
   const container = document.createElement("div");
   container.style.display = "contents";
 
+  // A route's render (e.g. an auth guard) can call `navigate()` synchronously, which — since
+  // signal.set() re-runs subscribers immediately, not batched — reenters this same effect
+  // mid-render. Without this guard, the reentrant call renders the redirected-to page correctly,
+  // but the stale outer call then finishes and overwrites the container with its own (now wrong)
+  // result. Queue a follow-up render instead of recursing, so the outermost call always yields to
+  // the freshest path.
+  let isRendering = false;
+  let pending = false;
+
   const render = () => {
-    const path = currentPath();
-    for (const route of routes) {
-      const params = matchRoute(route.pattern, path);
-      if (params) {
-        container.replaceChildren(untrack(() => route.render(params)));
-        return;
+    if (isRendering) {
+      pending = true;
+      return;
+    }
+    isRendering = true;
+    try {
+      const path = currentPath();
+      for (const route of routes) {
+        const params = matchRoute(route.pattern, path);
+        if (params) {
+          container.replaceChildren(untrack(() => route.render(params)));
+          return;
+        }
+      }
+      container.replaceChildren(untrack(notFound));
+    } finally {
+      isRendering = false;
+      if (pending) {
+        pending = false;
+        render();
       }
     }
-    container.replaceChildren(untrack(notFound));
   };
 
   effect(render);
