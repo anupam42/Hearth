@@ -93,7 +93,7 @@ export function App(): Node {
     { pattern: "/cycles", render: () => guarded(currentUser, () => CyclesPage()) },
     { pattern: "/modules", render: () => guarded(currentUser, () => ModulesPage()) },
     { pattern: "/pomodoro", render: () => guarded(currentUser, () => PomodoroPage()) },
-    { pattern: "/settings", render: () => guarded(currentUser, () => SettingsPage(currentUser)) },
+    { pattern: "/settings", render: () => guarded(currentUser, () => SettingsPage()) },
     {
       pattern: "/workspaces",
       render: () => guarded(currentUser, () => adminGuarded(currentUser, () => WorkspacesPage())),
