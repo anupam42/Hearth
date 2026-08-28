@@ -1,10 +1,10 @@
 import { h, list, when, type Child } from "../core/dom.js";
-import { computed, signal, type Signal } from "../core/reactive.js";
+import { computed, signal } from "../core/reactive.js";
 import { icons } from "../core/icons.js";
 import { EmptyState } from "../core/empty-state.js";
 import { Drawer } from "../core/drawer.js";
 import { toast, toastPosition, setToastPosition, type ToastPosition } from "../core/toast.js";
-import { api, type AccessToken, type CreateAccessTokenResponse, type User } from "../api/client.js";
+import { api, type AccessToken, type CreateAccessTokenResponse} from "../api/client.js";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
@@ -41,7 +41,7 @@ function SectionCard(icon: Node, title: string, description: string, action: Nod
   );
 }
 
-export function SettingsPage(currentUser: Signal<User | null>): Node {
+export function SettingsPage(): Node {
   const category = signal<SettingsCategory>("notifications");
 
   return h(

@@ -6,7 +6,7 @@ import { Drawer } from "../core/drawer.js";
 import { Dropdown } from "../core/dropdown.js";
 import { dotColon, reactiveDotDigit } from "../core/dotmatrix.js";
 import { currentPath } from "../core/router.js";
-import { setAmbientVolume, startAmbient, stopAmbient, type AmbientSoundId } from "../core/ambient-audio.js";
+import { stopAmbient } from "../core/ambient-audio.js";
 
 type Mode = "focus" | "short" | "long";
 type TopTab = "pomodoro" | "countdown" | "tracking";
@@ -87,21 +87,6 @@ function todayKey(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function startOfWeek(d: Date): Date {
-  const day = (d.getDay() + 6) % 7; // Monday = 0
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - day);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
-}
-
-const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const FOCUS_SOUNDS: { id: AmbientSoundId; label: string; icon: (size?: number) => Node }[] = [
-  { id: "rain", label: "Rain", icon: icons.cloudRain },
-  { id: "cafe", label: "Cafe", icon: icons.coffee },
-  { id: "forest", label: "Forest", icon: icons.tree },
-];
-
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -133,56 +118,7 @@ export function PomodoroPage(): Node {
   const newSubtask = signal("");
 
   // Focus Sounds: real filtered-noise ambient loops (Web Audio), not a fabricated music player
-  const selectedSound = signal<AmbientSoundId | null>(null);
   const soundPlaying = signal(false);
-  const soundMuted = signal(false);
-  const SOUND_VOLUME = 0.35;
-
-  const playSound = (id: AmbientSoundId) => {
-    selectedSound.set(id);
-    soundPlaying.set(true);
-    startAmbient(id, soundMuted() ? 0 : SOUND_VOLUME);
-  };
-
-  const toggleSoundPlaying = () => {
-    if (soundPlaying()) {
-      soundPlaying.set(false);
-      stopAmbient();
-    } else {
-      playSound(selectedSound() ?? FOCUS_SOUNDS[0]!.id);
-    }
-  };
-
-  const pickSound = (id: AmbientSoundId) => {
-    if (selectedSound() === id && soundPlaying()) {
-      soundPlaying.set(false);
-      stopAmbient();
-    } else {
-      playSound(id);
-    }
-  };
-
-  const stepSound = (dir: 1 | -1) => {
-    const ids = FOCUS_SOUNDS.map((s) => s.id);
-    const cur = selectedSound();
-    const idx = cur ? ids.indexOf(cur) : -1;
-    const next = ids[(((idx + dir) % ids.length) + ids.length) % ids.length]!;
-    if (soundPlaying()) playSound(next);
-    else selectedSound.set(next);
-  };
-
-  const shuffleSound = () => {
-    const ids = FOCUS_SOUNDS.map((s) => s.id).filter((id) => id !== selectedSound());
-    const next = ids[Math.floor(Math.random() * ids.length)] ?? FOCUS_SOUNDS[0]!.id;
-    if (soundPlaying()) playSound(next);
-    else selectedSound.set(next);
-  };
-
-  const toggleMute = () => {
-    const next = !soundMuted();
-    soundMuted.set(next);
-    setAmbientVolume(next ? 0 : SOUND_VOLUME);
-  };
 
   // Stop the ambient loop when navigating away from the Pomodoro page — this framework
   // has no unmount hook, so watch the route directly.
@@ -207,13 +143,6 @@ export function PomodoroPage(): Node {
     const entries = [...history(), { date: todayKey(), minutes }];
     history.set(entries);
     saveHistory(entries);
-  };
-
-  const clearHistory = () => {
-    history.set([]);
-    saveHistory([]);
-    focusSessionsCompleted.set(0);
-    toast.info("History cleared");
   };
 
   const tick = () => {
@@ -338,37 +267,6 @@ export function PomodoroPage(): Node {
   });
   const mmStr = computed(() => pad2(Math.floor(displaySeconds() / 60) % 100));
   const ssStr = computed(() => pad2(Math.floor(displaySeconds() % 60)));
-
-  const totalFocusMinutes = computed(() => history().reduce((sum, e) => sum + e.minutes, 0));
-  const totalSessions = computed(() => history().length);
-  const bestStreakDays = computed(() => {
-    const dates = [...new Set(history().map((e) => e.date))].sort();
-    if (dates.length === 0) return 0;
-    let best = 1;
-    let cur = 1;
-    for (let i = 1; i < dates.length; i++) {
-      const prev = new Date(dates[i - 1]!);
-      const next = new Date(dates[i]!);
-      const diffDays = Math.round((next.getTime() - prev.getTime()) / 86400000);
-      cur = diffDays === 1 ? cur + 1 : 1;
-      best = Math.max(best, cur);
-    }
-    return best;
-  });
-
-  const weekMinutes = computed(() => {
-    const monday = startOfWeek(new Date());
-    const byDate = new Map<string, number>();
-    for (const e of history()) byDate.set(e.date, (byDate.get(e.date) ?? 0) + e.minutes);
-    return WEEK_DAYS.map((_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return byDate.get(todayKey(d)) ?? 0;
-    });
-  });
-  const weekTotalHours = computed(() => (weekMinutes().reduce((a, b) => a + b, 0) / 60).toFixed(1));
-  const weekMaxMinutes = computed(() => Math.max(1, ...weekMinutes()));
-  const todayIndex = (new Date().getDay() + 6) % 7;
 
   const modes: Mode[] = ["focus", "short", "long"];
   const topTabs: { id: TopTab; label: string }[] = [
@@ -680,216 +578,6 @@ function SettingsDrawer(
         { style: { padding: "0", borderTop: "none", marginTop: "8px" } },
         h("button.btn.btn-secondary", { type: "button", onclick: close }, "Cancel"),
         h("button.btn.btn-primary", { type: "submit" }, "Save"),
-      ),
-    ),
-  );
-}
-
-function AnalyticsCard(
-  totalFocusMinutes: Signal<number>,
-  totalSessions: Signal<number>,
-  bestStreakDays: Signal<number>,
-  weekMinutes: Signal<number[]>,
-  weekTotalHours: Signal<string>,
-  weekMaxMinutes: Signal<number>,
-  todayIndex: number,
-  clearHistory: () => void,
-): Node {
-  return h(
-    "div.side-card",
-    {},
-    h(
-      "div.side-card-header",
-      {},
-      h("span.side-card-title", {}, "Analytics"),
-      Dropdown(
-        (toggle) =>
-          h("button.side-card-menu-btn", { onclick: toggle, title: "More" }, icons.moreHorizontal(16)),
-        (close) =>
-          h(
-            "div.dropdown-menu",
-            { style: { minWidth: "170px" } },
-            h(
-              "button.dropdown-item.danger",
-              {
-                onclick: () => {
-                  close();
-                  clearHistory();
-                },
-              },
-              icons.trash(14),
-              "Clear history",
-            ),
-          ),
-      ),
-    ),
-    h(
-      "div.stat-row",
-      {},
-      h(
-        "div.stat-tile",
-        {},
-        h("span.stat-tile-icon", {}, icons.timer(16)),
-        h(
-          "span.stat-tile-value",
-          {},
-          computed(() => `${Math.floor(totalFocusMinutes() / 60)}h`),
-        ),
-        h("span.stat-tile-label", {}, "Total focus"),
-      ),
-      h(
-        "div.stat-tile",
-        {},
-        h("span.stat-tile-icon", {}, icons.layers(16)),
-        h("span.stat-tile-value", {}, totalSessions),
-        h("span.stat-tile-label", {}, "Total sessions"),
-      ),
-      h(
-        "div.stat-tile",
-        {},
-        h("span.stat-tile-icon", {}, icons.checklist(16)),
-        h(
-          "span.stat-tile-value",
-          {},
-          computed(() => `${bestStreakDays()}d`),
-        ),
-        h("span.stat-tile-label", {}, "Best streak"),
-      ),
-    ),
-    h(
-      "div.week-header",
-      {},
-      h("span", {}, "This week"),
-      h(
-        "strong",
-        {},
-        computed(() => `${weekTotalHours()}h total`),
-      ),
-    ),
-    h(
-      "div.week-chart",
-      {},
-      ...WEEK_DAYS.map((day, i) =>
-        h(
-          "div.week-bar-col",
-          {},
-          h(
-            "div.week-tooltip",
-            {},
-            h("strong", {}, day),
-            computed(() => `Focus: ${(weekMinutes()[i]! / 60).toFixed(1)}h`),
-          ),
-          h("div.week-bar", {
-            class: i === todayIndex ? "today" : "",
-            ref: (el: HTMLElement) => {
-              effect(() => {
-                el.style.height = `${Math.max(3, (weekMinutes()[i]! / weekMaxMinutes()) * 100)}%`;
-              });
-            },
-          }),
-          h("span.week-bar-day", {}, day),
-        ),
-      ),
-    ),
-  );
-}
-
-function FocusSoundsCard(ctx: {
-  selectedSound: Signal<AmbientSoundId | null>;
-  soundPlaying: Signal<boolean>;
-  soundMuted: Signal<boolean>;
-  pickSound: (id: AmbientSoundId) => void;
-  toggleSoundPlaying: () => void;
-  stepSound: (dir: 1 | -1) => void;
-  shuffleSound: () => void;
-  toggleMute: () => void;
-}): Node {
-  const {
-    selectedSound,
-    soundPlaying,
-    soundMuted,
-    pickSound,
-    toggleSoundPlaying,
-    stepSound,
-    shuffleSound,
-    toggleMute,
-  } = ctx;
-
-  const activeMeta = computed(() => FOCUS_SOUNDS.find((s) => s.id === selectedSound()) ?? null);
-
-  return h(
-    "div.side-card",
-    {},
-    h("div.side-card-header", {}, h("span.side-card-title", {}, "Focus Sounds")),
-    h(
-      "div.sound-orb-wrap",
-      {},
-      h(
-        "div.sound-orb",
-        { class: computed(() => (soundPlaying() ? "playing" : "")) },
-        computed(() => (activeMeta() ? activeMeta()!.icon(28) : icons.music(28))),
-      ),
-    ),
-    h(
-      "div.sound-now-playing",
-      {},
-      h(
-        "strong",
-        {},
-        computed(() => activeMeta()?.label ?? "No sound selected"),
-      ),
-      h(
-        "span",
-        {},
-        computed(() => (soundPlaying() ? "Ambient loop · playing" : "Ambient loop · paused")),
-      ),
-    ),
-    h(
-      "div.sound-controls",
-      {},
-      h(
-        "button.sound-ctrl-btn",
-        { title: "Shuffle", type: "button", onclick: shuffleSound },
-        icons.shuffle(16),
-      ),
-      h(
-        "button.sound-ctrl-btn",
-        { title: "Previous", type: "button", onclick: () => stepSound(-1) },
-        icons.skipBack(16),
-      ),
-      h(
-        "button.sound-play-btn",
-        { title: "Play/Pause", type: "button", onclick: toggleSoundPlaying },
-        when(
-          soundPlaying,
-          () => icons.pause(20),
-          () => icons.play(20),
-        ),
-      ),
-      h(
-        "button.sound-ctrl-btn",
-        { title: "Next", type: "button", onclick: () => stepSound(1) },
-        icons.skipForward(16),
-      ),
-      h(
-        "button.sound-ctrl-btn",
-        { title: computed(() => (soundMuted() ? "Unmute" : "Mute")), type: "button", onclick: toggleMute },
-        icons.volume(16),
-      ),
-    ),
-    h(
-      "div.sound-grid",
-      {},
-      ...FOCUS_SOUNDS.map((s) =>
-        h(
-          "button.sound-tile",
-          {
-            class: computed(() => (selectedSound() === s.id ? "active" : "")),
-            onclick: () => pickSound(s.id),
-          },
-          s.icon(18),
-          h("span", {}, s.label),
-        ),
       ),
     ),
   );
