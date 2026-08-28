@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::auth::{self, CurrentUser};
 use crate::error::{AppError, AppResult};
-use crate::models::{LoginRequest, RegisterRequest, User};
+use crate::models::{LoginRequest, RegisterRequest, UpdateProfileRequest, User};
 use crate::AppState;
 
 pub async fn register(
@@ -89,4 +89,82 @@ pub async fn me(current_user: CurrentUser, State(state): State<AppState>) -> App
     .fetch_one(&state.db)
     .await?;
     Ok(Json(user))
+}
+
+pub async fn update_profile(
+    current_user: CurrentUser,
+    State(state): State<AppState>,
+    Json(req): Json<UpdateProfileRequest>,
+) -> AppResult<impl IntoResponse> {
+    let existing: User = sqlx::query_as(
+        "SELECT id, email, display_name, system_role, password_hash, created_at FROM users WHERE id = ?",
+    )
+    .bind(&current_user.id)
+    .fetch_one(&state.db)
+    .await?;
+
+    let display_name = req.display_name.unwrap_or(existing.display_name);
+    let previous_email = existing.email.clone();
+    let email = req.email.unwrap_or(existing.email);
+
+    let password_hash = if let Some(new_password) = req.new_password {
+        if new_password.len() < 8 {
+            return Err(AppError::BadRequest("password must be at least 8 characters".into()));
+        }
+        let current_password = req
+            .current_password
+            .ok_or_else(|| AppError::BadRequest("current_password is required to set a new password".into()))?;
+        let Some(hash) = &existing.password_hash else {
+            return Err(AppError::BadRequest("this account has no password to verify against".into()));
+        };
+        if !auth::verify_password(&current_password, hash) {
+            return Err(AppError::Unauthorized);
+        }
+        Some(auth::hash_password(&new_password).map_err(AppError::Internal)?)
+    } else {
+        None
+    };
+
+    if email != previous_email {
+        let taken: Option<(String,)> = sqlx::query_as("SELECT id FROM users WHERE email = ? AND id != ?")
+            .bind(&email)
+            .bind(&current_user.id)
+            .fetch_optional(&state.db)
+            .await?;
+        if taken.is_some() {
+            return Err(AppError::BadRequest("email already in use".into()));
+        }
+    }
+
+    sqlx::query(
+        "UPDATE users SET display_name = ?, email = ?, password_hash = COALESCE(?, password_hash) WHERE id = ?",
+    )
+    .bind(&display_name)
+    .bind(&email)
+    .bind(&password_hash)
+    .bind(&current_user.id)
+    .execute(&state.db)
+    .await?;
+
+    crate::audit::append(
+        &state.db,
+        &current_user.id,
+        "user.update_profile",
+        "user",
+        &current_user.id,
+        &serde_json::json!({ "password_changed": password_hash.is_some() }).to_string(),
+    )
+    .await?;
+
+    let updated: User = sqlx::query_as(
+        "SELECT id, email, display_name, system_role, password_hash, created_at FROM users WHERE id = ?",
+    )
+    .bind(&current_user.id)
+    .fetch_one(&state.db)
+    .await?;
+
+    // Claims embed email/role, so refresh the cookie whenever either could have changed.
+    let cookie = auth::issue_session_cookie(&updated.id, &updated.email, &updated.system_role, true);
+    let jar = CookieJar::new().add(cookie);
+    Ok((jar, Json(updated)))
 }

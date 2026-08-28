@@ -3,10 +3,13 @@ mod auth;
 mod db;
 mod error;
 mod models;
+mod ratelimit;
 mod routes;
 
+use std::net::SocketAddr;
+
 use axum::extract::State;
-use axum::http::{header, StatusCode, Uri};
+use axum::http::{header, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::Router;
 use rust_embed::RustEmbed;
@@ -41,15 +44,45 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api", routes::api_router())
         .fallback(static_handler)
         .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
+        .layer(cors_layer())
         .with_state(state);
 
     let addr = std::env::var("HEARTH_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".into());
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     tracing::info!("hearth listening on {addr}");
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
+}
+
+/// Builds an explicit allow-list from `HEARTH_CORS_ORIGINS` (comma-separated) when set;
+/// otherwise falls back to a permissive policy suitable for local dev only.
+fn cors_layer() -> CorsLayer {
+    match std::env::var("HEARTH_CORS_ORIGINS") {
+        Ok(origins) => {
+            let allowed: Vec<HeaderValue> = origins
+                .split(',')
+                .map(str::trim)
+                .filter(|o| !o.is_empty())
+                .filter_map(|o| o.parse().ok())
+                .collect();
+            CorsLayer::new()
+                .allow_origin(allowed)
+                .allow_methods(tower_http::cors::Any)
+                .allow_headers(tower_http::cors::Any)
+        }
+        Err(_) => {
+            tracing::warn!(
+                "HEARTH_CORS_ORIGINS is not set — falling back to a permissive CORS policy. \
+                 Set it to a comma-separated allow-list before deploying anywhere but localhost."
+            );
+            CorsLayer::permissive()
+        }
+    }
 }
 
 async fn static_handler(State(_state): State<AppState>, uri: Uri) -> Response {

@@ -1,6 +1,6 @@
 # Hearth
 
-A self-hosted project and task tracker with OIDC/password authentication and a tamper-evident audit log.
+A self-hosted project and task tracker with password/token authentication and a tamper-evident audit log. (OIDC is planned, not yet implemented — see [Known gaps](#known-gaps).)
 
 ## Stack
 
@@ -13,11 +13,12 @@ A self-hosted project and task tracker with OIDC/password authentication and a t
 ```
 backend/          Rust API server
   src/
-    routes/       HTTP handlers (auth, projects, tasks, audit)
-    auth/         OIDC + password authentication
+    routes/       HTTP handlers (auth, projects, tasks, labels, tokens, workspaces, audit)
+    auth/         Password auth, session cookies, personal access tokens
     audit/        Hash-chained audit log
     db/           Database connection/setup
     models/       Shared data types
+    ratelimit.rs  In-memory per-IP limiter for the auth routes
   migrations/      sqlx migrations
 
 frontend/         TypeScript client
@@ -30,7 +31,7 @@ frontend/         TypeScript client
 
 ## Data model
 
-Users belong to projects (`project_members`, with `guest`/`member`/`admin` roles). Each project has sequentially numbered tasks with status, priority, labels, and assignees. `workspaces` exist as an admin-only grouping (not yet linked to projects — see [Known gaps](#known-gaps)). Every mutating action is recorded in a hash-chained `audit_log` table for tamper evidence.
+Users belong to projects (`project_members`, with `guest`/`member`/`admin` roles). Each project has sequentially numbered tasks with status, priority, labels, and assignees, and can optionally belong to an admin-managed `workspace`. Every mutating action is recorded in a hash-chained `audit_log` table for tamper evidence.
 
 ## Development
 
@@ -59,19 +60,26 @@ Run `npm run build` in `frontend/` before `cargo run`/`cargo build` in `backend/
 
 - `DATABASE_URL` — SQLite connection string (default `sqlite://hearth.db`)
 - `HEARTH_ADDR` — address to bind (default `0.0.0.0:8080`)
-- `HEARTH_JWT_SECRET` — secret used to sign session JWTs. **Defaults to a hardcoded dev value** (`dev-only-insecure-secret-change-me`) — must be set to a real random secret before any non-local deployment.
+- `HEARTH_JWT_SECRET` — secret used to sign session JWTs. **Defaults to a hardcoded dev value** (`dev-only-insecure-secret-change-me`) and logs a startup warning when unset — must be set to a real random secret before any non-local deployment.
+- `HEARTH_CORS_ORIGINS` — comma-separated allow-list of origins (e.g. `https://app.example.com,https://staging.example.com`). Unset falls back to a permissive CORS policy with a startup warning — fine for local dev, not for anything else.
 - `API_TARGET`, `PORT`, `LIVE_RELOAD` — frontend dev server only (see above)
+
+## Auth
+
+Two ways to authenticate against `/api`:
+
+- **Session cookie** — issued by `POST /api/auth/login` (or `/auth/register`). Pass `"remember": false` in the login body for a browser-session-only cookie instead of the default 7-day persistent one.
+- **Personal access token** — `Authorization: Bearer <token>`. Create one with `POST /api/tokens` (`{ "name": "...", "permission": "read" | "read_write", "expires_at": "<RFC3339>" }`, optional expiry); the raw token is returned **once**, in the create response, and never again — only its SHA-256 hash is stored. `permission: "read"` tokens are rejected with `403` on anything but `GET`/`HEAD`. `GET /api/tokens` lists your tokens (metadata only); `DELETE /api/tokens/:id` revokes one immediately.
+
+`/api/auth/login` and `/api/auth/register` are rate-limited (10 attempts / 5 minutes / IP, in-memory — fine for a single instance, would need a shared store behind a load balancer).
 
 ## Known gaps
 
 Things that exist partway — either scaffolded with no route/UI, or UI-only with nothing behind them. Listed so nobody mistakes them for finished:
 
-- **OIDC / social login** — `openidconnect`/`oauth2` are in `Cargo.toml` and the DB schema (`oidc_provider`, `oidc_subject` on `users`) supports it, but no OIDC route is wired up. Password auth is the only working login path.
-- **Labels** — `labels` and `task_labels` tables exist in the schema; there's no backend route or frontend UI to create, assign, or filter by them.
-- **Workspaces ↔ Projects** — workspaces (admin-only) can be created, but projects have no `workspace_id` and the "Showing all workspaces" toggle on Projects/Dashboard is decorative.
+- **Backend built, frontend not wired yet** — labels (`GET`/`POST`/`DELETE /api/projects/:id/labels`, assign/unassign on tasks), workspace-linked projects (`workspace_id` on `Project`, `?workspace_id=` filter on `GET /api/projects`), "my tasks" (`GET /api/tasks/mine`), account updates (`PATCH /api/auth/me`), and personal access tokens (`GET`/`POST /api/tokens`, `DELETE /api/tokens/:id`, bearer-token auth) are all real, tested routes now — but the frontend still shows the old placeholders: Settings' token UI is in-memory only, the dashboard's "Assigned to You" is hardcoded empty, there's no label picker on the task board, no account-settings page, and the "Showing all workspaces" toggle doesn't call the new query param yet.
+- **OIDC / social login** — `openidconnect`/`oauth2` are in `Cargo.toml` and the DB schema (`oidc_provider`, `oidc_subject` on `users`) supports it, but no OIDC route is wired up. Password auth (cookie or PAT) is the only working login path.
 - **Views, Cycles, Modules** — nav pages exist as empty states matching a reference design; no backend tables or routes behind any of them.
-- **"Assigned to You" (dashboard)** — always empty; there's no cross-project "my tasks" query yet.
-- **Personal Access Tokens (Settings)** — the create-token UI is entirely client-side (in-memory), not persisted or usable for real API auth.
 - **Pomodoro subtasks / attached task** — client-only state, not saved to a project/task on the backend.
 - **Ambient sounds (Pomodoro)** — selectable in the UI, no actual audio wired up.
 - **Search and notification bell (topbar)** — present in the UI, not functional.
@@ -81,15 +89,11 @@ Things that exist partway — either scaffolded with no route/UI, or UI-only wit
 
 Rough near-term priorities, roughly in order:
 
-1. **Audit trail UI** — `GET /api/audit` and `/api/audit/verify` are fully implemented backend-side and have *no frontend consumer at all*. This is close to free value: a project activity feed + a "verify integrity" button is mostly wiring, not new backend work.
-2. **Account settings** — there's currently no way to edit your own display name, email, or password after registering, and no route for it. Basic but missing.
-3. Wire labels end-to-end (routes + task board UI) — the schema's already there.
-4. Link projects to workspaces (`workspace_id` + migration) and make the workspace toggle actually filter.
-5. A real "my tasks" endpoint for the dashboard's "Assigned to You" section.
-6. Persist Personal Access Tokens server-side (hashed, scoped read/read-write, actually usable as a bearer token against `/api`).
-7. Move Pomodoro subtasks/attached-task from `localStorage` onto the task model, so a focus session can genuinely tie back to a real task.
-8. Drag-and-drop on the task board (react to reordering, not just the status `<select>`).
-9. Real-time updates (SSE or WebSocket) so multiple people looking at the same project see changes live — the audit log already has the event stream to hang this off of.
+1. **Wire the frontend to the backend routes that already exist** — this is the biggest chunk of remaining value for the least new backend work. In order of payoff: Settings → real PAT create/list/revoke; dashboard "Assigned to You" → `GET /tasks/mine`; task board → label picker; Projects/Dashboard workspace toggle → `?workspace_id=`; a new account-settings page → `PATCH /auth/me`.
+2. **Audit trail UI** — `GET /api/audit` and `/api/audit/verify` are fully implemented backend-side and have *no frontend consumer at all*. A project activity feed + a "verify integrity" button is mostly wiring, not new backend work.
+3. Move Pomodoro subtasks/attached-task from `localStorage` onto the task model, so a focus session can genuinely tie back to a real task.
+4. Drag-and-drop on the task board (react to reordering, not just the status `<select>`).
+5. Real-time updates (SSE or WebSocket) so multiple people looking at the same project see changes live — the audit log already has the event stream to hang this off of.
 
 ### Pro / stretch ideas
 
@@ -138,8 +142,7 @@ A `docker-compose.yml` wrapping that image (plus a named volume for the DB) woul
 
 ### Before any real deployment
 
-- Replace the default `HEARTH_JWT_SECRET` with a real generated secret (deployment platform's secret manager, not committed anywhere).
-- Tighten `CorsLayer::permissive()` in `backend/src/main.rs` to an explicit allowed-origin list.
-- Add rate limiting on `/api/auth/login` and `/api/auth/register` (no brute-force protection currently exists).
+- Set `HEARTH_JWT_SECRET` and `HEARTH_CORS_ORIGINS` to real values — both now default to permissive/insecure with a startup warning if unset, precisely so this is easy to spot in logs before it bites you.
 - Terminate TLS in front of the binary (the platform's load balancer, or a `Caddy`/`nginx` sidecar) — axum serves plain HTTP.
-- **No automated tests exist yet** (backend or frontend) — worth having at least auth + audit-log-integrity coverage before this runs anything real.
+- The in-memory rate limiter on `/auth/login` and `/auth/register` (10 attempts / 5 min / IP) only works for a single instance — swap it for a shared store (Redis, etc.) before running more than one.
+- **No automated tests exist yet** (backend or frontend) — worth having at least auth + PAT + audit-log-integrity coverage before this runs anything real.

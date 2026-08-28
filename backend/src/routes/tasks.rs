@@ -4,10 +4,30 @@ use uuid::Uuid;
 
 use crate::auth::CurrentUser;
 use crate::error::{AppError, AppResult};
-use crate::models::{CreateTaskRequest, Task, UpdateTaskRequest};
+use crate::models::{CreateTaskRequest, Task, TaskWithProject, UpdateTaskRequest};
 use crate::AppState;
 
 const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "urgent"];
+
+/// Every open task assigned to the current user, across all projects — backs the
+/// dashboard's "Assigned to You" section.
+pub async fn mine(
+    current_user: CurrentUser,
+    State(state): State<AppState>,
+) -> AppResult<Json<Vec<TaskWithProject>>> {
+    let tasks: Vec<TaskWithProject> = sqlx::query_as(
+        "SELECT t.id, t.project_id, p.key as project_key, p.name as project_name, t.seq, t.display_id,
+                t.title, t.description, t.status, t.priority, t.assignee_id, t.created_by,
+                t.created_at, t.updated_at
+         FROM tasks t JOIN projects p ON p.id = t.project_id
+         WHERE t.assignee_id = ?
+         ORDER BY t.updated_at DESC",
+    )
+    .bind(&current_user.id)
+    .fetch_all(&state.db)
+    .await?;
+    Ok(Json(tasks))
+}
 
 pub async fn list(
     _current_user: CurrentUser,
