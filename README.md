@@ -1,6 +1,64 @@
 # Hearth
 
-A self-hosted project and task tracker with password/token authentication and a tamper-evident audit log. (OIDC is planned, not yet implemented — see [Known gaps](#known-gaps).)
+A self-hosted project and task tracker with password/token authentication and a tamper-evident audit log. (OIDC is planned, not yet implemented — see [Status](#status).)
+
+## Status
+
+At-a-glance picture of what's real vs. what's still a placeholder. Checked = built, tested, working end-to-end.
+
+### Backend
+
+- [x] Password auth (register/login/logout), argon2 hashing
+- [x] Session cookies (JWT) with "remember me" (persistent vs. session-only cookie)
+- [x] Personal access tokens — create/list/revoke, bearer auth, `read` vs `read_write` enforced
+- [x] Rate limiting on `/auth/login` + `/auth/register` (in-memory, per-IP)
+- [x] CORS allow-list via `HEARTH_CORS_ORIGINS`, warns on the permissive fallback
+- [x] Projects — create/list/get, scoped to project members
+- [x] Tasks — create/list/update (status, priority, assignee)
+- [x] Labels — create/list/delete, assign/unassign to tasks
+- [x] Workspaces — admin-only create/list, linked to projects via `workspace_id`, filterable
+- [x] "My tasks" — cross-project endpoint for the current user
+- [x] Account update — change display name / email / password (`PATCH /auth/me`)
+- [x] Hash-chained audit log — append on every mutation, `/audit/verify` integrity check
+- [ ] OIDC / social login
+- [ ] Password reset / email verification
+- [ ] Automated tests (none exist yet — backend or frontend)
+- [ ] Postgres option (needed for multi-instance; SQLite is single-writer)
+- [ ] Notifications, task comments, file attachments — no backend at all yet
+- [ ] Full-text search
+
+### Frontend
+
+- [x] Login / Register — shared split-panel layout, password visibility toggle, remember-me
+- [x] Dashboard, Projects list, Project task board
+- [x] Workspaces page (admin-only nav gating)
+- [x] Views / Cycles / Modules — empty-state pages
+- [x] Settings page — PAT UI is **client-only right now**, doesn't call the real `/tokens` endpoints
+- [x] Pomodoro — dot-matrix timer, real localStorage-backed analytics, subtasks (client-only)
+- [x] Light/dark/system theme, light as the default
+- [x] Slide-in Drawer used for every creation flow (projects, tasks, workspaces, tokens)
+- [x] Brand color system + mascot icon/favicon
+- [x] Hot-reload dev server
+- [ ] Wire Settings to the real PAT endpoints (`GET`/`POST /tokens`, `DELETE /tokens/:id`)
+- [ ] Wire dashboard "Assigned to You" to `GET /tasks/mine`
+- [ ] Label picker / assignment on the task board
+- [ ] Wire the "Showing all workspaces" toggle to `?workspace_id=`
+- [ ] Account-settings page wired to `PATCH /auth/me` (no edit-profile UI exists yet)
+- [ ] Audit trail UI — `GET /audit` and `/audit/verify` have no frontend consumer at all
+- [ ] Drag-and-drop task board (status changes only via `<select>` today)
+- [ ] Real-time updates (SSE/WebSocket)
+- [ ] Functional search / notifications — topbar icons are decorative
+
+### Ops & deployment
+
+- [ ] Dockerfile / containerization
+- [ ] CI pipeline (lint + typecheck + test on every PR)
+- [ ] Hosting/deploy target configured
+- [ ] Backup strategy for the SQLite file
+- [ ] TLS termination in front of the binary
+- [ ] Shared-store rate limiter (only needed once running >1 instance)
+
+See [Deployment](#deployment) below for the suggested shape of all of this.
 
 ## Stack
 
@@ -73,51 +131,29 @@ Two ways to authenticate against `/api`:
 
 `/api/auth/login` and `/api/auth/register` are rate-limited (10 attempts / 5 minutes / IP, in-memory — fine for a single instance, would need a shared store behind a load balancer).
 
-## Known gaps
+## Pro / stretch ideas
 
-Things that exist partway — either scaffolded with no route/UI, or UI-only with nothing behind them. Listed so nobody mistakes them for finished:
+Bigger swings, not committed to — a wishlist, not a roadmap:
 
-- **Backend built, frontend not wired yet** — labels (`GET`/`POST`/`DELETE /api/projects/:id/labels`, assign/unassign on tasks), workspace-linked projects (`workspace_id` on `Project`, `?workspace_id=` filter on `GET /api/projects`), "my tasks" (`GET /api/tasks/mine`), account updates (`PATCH /api/auth/me`), and personal access tokens (`GET`/`POST /api/tokens`, `DELETE /api/tokens/:id`, bearer-token auth) are all real, tested routes now — but the frontend still shows the old placeholders: Settings' token UI is in-memory only, the dashboard's "Assigned to You" is hardcoded empty, there's no label picker on the task board, no account-settings page, and the "Showing all workspaces" toggle doesn't call the new query param yet.
-- **OIDC / social login** — `openidconnect`/`oauth2` are in `Cargo.toml` and the DB schema (`oidc_provider`, `oidc_subject` on `users`) supports it, but no OIDC route is wired up. Password auth (cookie or PAT) is the only working login path.
-- **Views, Cycles, Modules** — nav pages exist as empty states matching a reference design; no backend tables or routes behind any of them.
-- **Pomodoro subtasks / attached task** — client-only state, not saved to a project/task on the backend.
-- **Ambient sounds (Pomodoro)** — selectable in the UI, no actual audio wired up.
-- **Search and notification bell (topbar)** — present in the UI, not functional.
-- **Password reset / email verification** — no flow for either.
-
-## Roadmap
-
-Rough near-term priorities, roughly in order:
-
-1. **Wire the frontend to the backend routes that already exist** — this is the biggest chunk of remaining value for the least new backend work. In order of payoff: Settings → real PAT create/list/revoke; dashboard "Assigned to You" → `GET /tasks/mine`; task board → label picker; Projects/Dashboard workspace toggle → `?workspace_id=`; a new account-settings page → `PATCH /auth/me`.
-2. **Audit trail UI** — `GET /api/audit` and `/api/audit/verify` are fully implemented backend-side and have *no frontend consumer at all*. A project activity feed + a "verify integrity" button is mostly wiring, not new backend work.
-3. Move Pomodoro subtasks/attached-task from `localStorage` onto the task model, so a focus session can genuinely tie back to a real task.
-4. Drag-and-drop on the task board (react to reordering, not just the status `<select>`).
-5. Real-time updates (SSE or WebSocket) so multiple people looking at the same project see changes live — the audit log already has the event stream to hang this off of.
-
-### Pro / stretch ideas
-
-Bigger swings, no particular order:
-
-- **OIDC login** (Google/GitHub/generic) using the already-present `openidconnect` dependency and schema columns.
-- **Postgres option** alongside SQLite for teams that outgrow single-writer SQLite — `sqlx` already abstracts most of this; the migrations would need a Postgres-compatible variant.
-- **Full-text search** across tasks/projects (SQLite FTS5, or Postgres `tsvector` if that migration happens first) to back the topbar search icon for real.
-- **Webhooks / integrations** off the audit log (Slack/Discord notification on task state changes, etc.) — the hash-chained log is a natural event source.
-- **Role-based project permissions UI** — `project_members.role` (`guest`/`member`/`admin`) exists in the schema but there's no UI to manage it per-project.
-- **Exportable audit trail** (CSV/JSON download of the hash-chained log) for compliance use cases — pairs with the existing `/api/audit/verify` integrity check.
-- **Mobile-optimized layouts** beyond the current responsive breakpoints (a real PWA manifest + offline shell).
-- **Task comments / activity feed** — threaded discussion per task, stored server-side, surfaced in a task-detail drawer (the `Drawer` component already exists for this).
-- **File attachments on tasks** — upload to local disk or S3-compatible storage, linked via a new table; shown alongside comments.
-- **Real notifications** — the topbar bell is currently decorative. A `notifications` table + read/unread state, populated on assignment/comment/mention, would make it real.
-- **@mentions** in task descriptions/comments, parsed server-side, feeding the notification system above.
-- **Task dependencies** ("blocked by" / "blocks" links between tasks), visualized on the board.
-- **Time tracking tied to Pomodoro** — let a focus session log against a specific task (depends on the Pomodoro-subtasks-to-backend roadmap item above), with a per-task/per-project time report.
-- **Custom fields per project** — admin-defined extra fields on tasks (text/select/number), stored as JSON or an EAV table.
-- **Functional saved Views** — the "Views" nav page is currently an empty state; persisting a named filter/sort combination server-side (with a shareable link) would make it real.
-- **Bulk task operations** — multi-select on the board, bulk status/assignee/label change in one request.
-- **Command palette (⌘K)** — quick navigate-to-project/task and run-action UI; a natural frontend pairing for the full-text search item above.
-- **Two-factor authentication (TOTP)** — backend secret generation/verification + a frontend QR-code setup flow.
-- **Project/task templates** — spin up a new project pre-populated with a standard task/column set.
+- [ ] **OIDC login** (Google/GitHub/generic) using the already-present `openidconnect` dependency and schema columns
+- [ ] **Postgres option** alongside SQLite for teams that outgrow single-writer SQLite
+- [ ] **Full-text search** across tasks/projects, to back the topbar search icon for real
+- [ ] **Webhooks / integrations** off the audit log (Slack/Discord on task state changes, etc.)
+- [ ] **Role-based project permissions UI** — `project_members.role` exists in the schema, no UI to manage it
+- [ ] **Exportable audit trail** (CSV/JSON download) for compliance use cases
+- [ ] **Mobile-optimized layouts** beyond the current responsive breakpoints — a real PWA
+- [ ] **Task comments / activity feed** — the `Drawer` component already exists for this
+- [ ] **File attachments on tasks**
+- [ ] **Real notifications** — `notifications` table + read/unread state
+- [ ] **@mentions** in descriptions/comments, feeding the notification system above
+- [ ] **Task dependencies** ("blocked by" / "blocks")
+- [ ] **Time tracking tied to Pomodoro** — a focus session logging against a specific task
+- [ ] **Custom fields per project**
+- [ ] **Functional saved Views** — persist a named filter/sort combination, shareable
+- [ ] **Bulk task operations** — multi-select, bulk status/assignee/label change
+- [ ] **Command palette (⌘K)**
+- [ ] **Two-factor authentication (TOTP)**
+- [ ] **Project/task templates**
 
 ## Deployment
 
@@ -142,7 +178,7 @@ A `docker-compose.yml` wrapping that image (plus a named volume for the DB) woul
 
 ### Before any real deployment
 
-- Set `HEARTH_JWT_SECRET` and `HEARTH_CORS_ORIGINS` to real values — both now default to permissive/insecure with a startup warning if unset, precisely so this is easy to spot in logs before it bites you.
-- Terminate TLS in front of the binary (the platform's load balancer, or a `Caddy`/`nginx` sidecar) — axum serves plain HTTP.
-- The in-memory rate limiter on `/auth/login` and `/auth/register` (10 attempts / 5 min / IP) only works for a single instance — swap it for a shared store (Redis, etc.) before running more than one.
-- **No automated tests exist yet** (backend or frontend) — worth having at least auth + PAT + audit-log-integrity coverage before this runs anything real.
+- [ ] Set `HEARTH_JWT_SECRET` and `HEARTH_CORS_ORIGINS` to real values — both now default to permissive/insecure with a startup warning if unset, precisely so this is easy to spot in logs before it bites you.
+- [ ] Terminate TLS in front of the binary (the platform's load balancer, or a `Caddy`/`nginx` sidecar) — axum serves plain HTTP.
+- [ ] Swap the in-memory rate limiter for a shared store (Redis, etc.) before running more than one instance.
+- [ ] Add automated tests — at least auth + PAT + audit-log-integrity coverage before this runs anything real.
