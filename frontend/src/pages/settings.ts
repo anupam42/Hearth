@@ -1,4 +1,4 @@
-import { h, list, when } from "../core/dom.js";
+import { h, list, when, type Child } from "../core/dom.js";
 import { computed, signal, type Signal } from "../core/reactive.js";
 import { icons } from "../core/icons.js";
 import { EmptyState } from "../core/empty-state.js";
@@ -15,7 +15,110 @@ function permissionLabel(permission: string): string {
   return permission === "read" ? "Read only" : "Read & write";
 }
 
+type SettingsCategory = "notifications" | "tokens";
+
+const CATEGORIES: { id: SettingsCategory; label: string; icon: (size?: number) => Node }[] = [
+  { id: "notifications", label: "Notifications", icon: icons.bell },
+  { id: "tokens", label: "Personal Access Tokens", icon: icons.key },
+];
+
+function SectionCard(icon: Node, title: string, description: string, action: Node | null, body: Child): Node {
+  return h(
+    "div.settings-section-card",
+    {},
+    h(
+      "div.settings-section-header",
+      {},
+      h(
+        "div",
+        {},
+        h(
+          "div.settings-section-title",
+          {},
+          h("span.section-icon-badge", {}, icon),
+          title,
+        ),
+        h("p.settings-section-desc", {}, description),
+      ),
+      action,
+    ),
+    h("div.settings-section-body", {}, body),
+  );
+}
+
 export function SettingsPage(currentUser: Signal<User | null>): Node {
+  const category = signal<SettingsCategory>("notifications");
+
+  return h(
+    "div.page",
+    {},
+    h(
+      "div.page-header.spacious",
+      {},
+      h("h1.page-title", {}, icons.settings(24), "Settings"),
+      h("p.page-subtitle", {}, "Manage your account and application preferences"),
+    ),
+    h(
+      "div.settings-shell",
+      {},
+      h(
+        "nav.settings-nav",
+        {},
+        ...CATEGORIES.map((c) =>
+          h(
+            "button.settings-nav-item",
+            {
+              class: computed(() => (category() === c.id ? "active" : "")),
+              type: "button",
+              onclick: () => category.set(c.id),
+            },
+            c.icon(16),
+            c.label,
+          ),
+        ),
+      ),
+      h(
+        "div.settings-panel",
+        {},
+        when(
+          computed(() => category() === "notifications"),
+          () => NotificationsSection(),
+        ),
+        when(
+          computed(() => category() === "tokens"),
+          () => TokensSection(),
+        ),
+      ),
+    ),
+  );
+}
+
+function NotificationsSection(): Node {
+  return SectionCard(
+    icons.bell(18),
+    "Notifications",
+    "Choose where toast notifications appear on screen.",
+    null,
+    h(
+      "div.settings-row",
+      {},
+      PositionPicker(),
+      h(
+        "button.btn.btn-secondary",
+        {
+          onclick: () =>
+            toast.info("This is a preview", {
+              message: "Notifications will show up right here from now on.",
+            }),
+        },
+        icons.bell(16),
+        "Send test notification",
+      ),
+    ),
+  );
+}
+
+function TokensSection(): Node {
   const tokens = signal<AccessToken[]>([]);
   const hasTokens = computed(() => tokens().length > 0);
   const loadError = signal("");
@@ -186,97 +289,46 @@ export function SettingsPage(currentUser: Signal<User | null>): Node {
     ),
   );
 
-  return h(
-    "div.page",
-    {},
+  return SectionCard(
+    icons.key(18),
+    "Personal Access Tokens",
+    "Tokens authenticate API requests. Choose Read only to restrict a token to safe methods (GET), or Read & write for full access. Scope can't be changed after creation — revoke and create a new one instead.",
     h(
-      "div.page-header",
-      {},
-      h("h1.page-title", {}, icons.settings(24), "Settings"),
-      h("p.page-subtitle", {}, "Manage your account settings"),
+      "button.btn.btn-light",
+      {
+        onclick: () => {
+          resetForm();
+          drawer.open();
+        },
+      },
+      icons.plus(16),
+      "Create Token",
     ),
     h(
-      "div.stack.gap-6",
-      { style: { padding: "24px" } },
-      h(
-        "div.stack.gap-3",
-        {},
-        h("div.section-title", {}, icons.bell(18), "Notifications"),
-        h(
-          "p",
-          { style: { color: "var(--color-text-muted)", fontSize: "0.875rem", marginTop: "-8px" } },
-          "Choose where toast notifications appear on screen.",
-        ),
-        h(
-          "div.card",
-          { style: { padding: "20px" } },
-          h(
-            "div.row.gap-4",
-            { style: { alignItems: "flex-start", flexWrap: "wrap" } },
-            PositionPicker(),
-            h(
-              "button.btn.btn-secondary",
-              {
-                onclick: () =>
-                  toast.info("This is a preview", {
-                    message: "Notifications will show up right here from now on.",
-                  }),
-              },
-              icons.bell(16),
-              "Send test notification",
-            ),
-          ),
-        ),
-      ),
-      h(
-        "div.section-header",
-        {},
-        h("div.section-title", {}, icons.key(18), "Personal Access Tokens"),
-        h(
-          "button.btn.btn-light",
-          {
-            onclick: () => {
-              resetForm();
-              drawer.open();
-            },
-          },
-          icons.plus(16),
-          "Create Token",
-        ),
-      ),
-      h(
-        "p",
-        { style: { color: "var(--color-text-muted)", fontSize: "0.875rem", marginTop: "-8px" } },
-        "Tokens authenticate API requests. Choose Read only to restrict a token to safe methods (GET), or Read & write for full access. Scope can't be changed after creation — revoke and create a new one instead.",
-      ),
+      "div.stack.gap-3",
+      {},
       when(computed(() => loadError().length > 0), () => h("div.error-banner", {}, loadError)),
       when(
         hasTokens,
         () =>
           h(
-            "div.card.stack",
-            { style: { padding: "8px" } },
+            "div.token-list",
+            {},
             list(tokens, (token) =>
               h(
-                "div.row.gap-3",
-                {
-                  style: {
-                    justifyContent: "space-between",
-                    padding: "12px",
-                    borderBottom: "1px solid var(--color-border-subtle)",
-                  },
-                },
+                "div.token-row",
+                {},
                 h(
-                  "div.row.gap-3",
+                  "div.token-row-info",
                   {},
-                  icons.key(16),
+                  h("span.token-row-icon", {}, icons.key(16)),
                   h(
                     "div",
                     {},
-                    h("div", { style: { fontWeight: "600" } }, token.name),
+                    h("div.token-name", {}, token.name),
                     h(
-                      "div",
-                      { style: { fontSize: "0.75rem", color: "var(--color-text-muted)" } },
+                      "div.token-meta",
+                      {},
                       token.expires_at ? `Expires ${formatDate(token.expires_at)}` : "No expiry",
                       token.last_used_at ? ` · Last used ${formatDate(token.last_used_at)}` : " · Never used",
                     ),
@@ -295,12 +347,7 @@ export function SettingsPage(currentUser: Signal<User | null>): Node {
               ),
             ),
           ),
-        () =>
-          h(
-            "div.card",
-            { style: { padding: "8px" } },
-            EmptyState(icons.key(24), "No tokens yet", "Create a token above to get started"),
-          ),
+        () => EmptyState(icons.key(24), "No tokens yet", "Create a token above to get started"),
       ),
     ),
   );

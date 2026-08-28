@@ -155,7 +155,11 @@ function Sidebar(currentUser: ReturnType<typeof signal<User | null>>): Node {
   return h(
     "aside.sidebar",
     {},
-    h("div.sidebar-brand", {}, h("img", { src: "/icon.svg", alt: "Hearth", width: 26, height: 26 })),
+    h(
+      "a.sidebar-brand",
+      { href: "/", title: "Hearth" },
+      h("img", { src: "/icon.svg", alt: "Hearth", width: 26, height: 26 }),
+    ),
     h(
       "nav.sidebar-nav",
       {},
@@ -223,24 +227,18 @@ function Topbar(
     "header.topbar",
     {},
     h(
-      "a.topnav-brand.row.gap-2",
-      { href: "/" },
-      h("img", { src: "/icon.svg", alt: "Hearth", width: 24, height: 24 }),
-      "Hearth",
-    ),
-    h(
       "div.topbar-actions",
       {},
-      h("button.topbar-icon-btn", { title: "Search" }, icons.search(18)),
       h("button.topbar-icon-btn", { title: "Notifications" }, icons.bell(18)),
+      h("a.topbar-icon-btn", { href: "/settings", title: "Settings" }, icons.settings(18)),
       ThemeMenu(),
+      h("div.topbar-divider", {}),
       Dropdown(
         (toggle) =>
           h(
             "button.topbar-user",
-            { onclick: toggle },
-            h("span.avatar", {}, initials),
-            h("span", {}, displayName),
+            { onclick: toggle, title: displayName },
+            h("span.avatar.avatar-ring", {}, initials, h("span.avatar-status", { title: "Online" })),
           ),
         (close) =>
           h(
@@ -251,35 +249,6 @@ function Topbar(
               {},
               h("div.dropdown-header-name", {}, displayName),
               h("div.dropdown-header-email", {}, computed(() => currentUser()?.email ?? "")),
-            ),
-            h("div.dropdown-divider", {}),
-            h(
-              "a.dropdown-item",
-              { href: "/", onclick: close },
-              icons.grid(16),
-              "Dashboard",
-            ),
-            h(
-              "a.dropdown-item",
-              { href: "/projects", onclick: close },
-              icons.folder(16),
-              "Projects",
-            ),
-            h(
-              "a.dropdown-item",
-              { href: "/settings", onclick: close },
-              icons.settings(16),
-              "Settings",
-            ),
-            when(
-              computed(() => currentUser()?.system_role === "admin"),
-              () =>
-                h(
-                  "a.dropdown-item",
-                  { href: "/workspaces", onclick: close },
-                  icons.building(16),
-                  "Workspaces",
-                ),
             ),
             h("div.dropdown-divider", {}),
             h(

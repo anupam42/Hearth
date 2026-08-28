@@ -34,7 +34,7 @@ At-a-glance picture of what's real vs. what's still a placeholder. Checked = bui
 - [x] Dashboard, Projects list, Project task board
 - [x] Workspaces page (admin-only nav gating)
 - [x] Views / Cycles / Modules — empty-state pages
-- [x] Settings page — real PAT create/list/revoke, wired to `/tokens`, one-time secret reveal with copy-to-clipboard
+- [x] Settings page — categorized layout (left nav + section cards: Notifications, Personal Access Tokens); PAT create/list/revoke wired to `/tokens`, one-time secret reveal with copy-to-clipboard
 - [x] Pomodoro — dot-matrix timer, real localStorage-backed analytics, subtasks (client-only)
 - [x] Light/dark/system theme, light as the default
 - [x] Slide-in Drawer used for every creation flow (projects, tasks, workspaces, tokens)
