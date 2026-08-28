@@ -121,16 +121,17 @@ export function ProjectPage(params: Record<string, string>): Node {
         h("h1", {}, projectName),
         h(
           "span",
-          { style: { color: "var(--color-text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" } },
+          {
+            style: {
+              color: "var(--color-text-muted)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.8125rem",
+            },
+          },
           projectKey,
         ),
       ),
-      h(
-        "button.btn.btn-primary",
-        { onclick: () => drawer.open() },
-        icons.plus(16),
-        "New task",
-      ),
+      h("button.btn.btn-primary", { onclick: () => drawer.open() }, icons.plus(16), "New task"),
     ),
     h(
       "div.board",
@@ -143,7 +144,11 @@ export function ProjectPage(params: Record<string, string>): Node {
             "div.board-column-header",
             {},
             h("span", {}, col.label),
-            h("span", {}, computed(() => String(columnTasks[col.status]!().length))),
+            h(
+              "span",
+              {},
+              computed(() => String(columnTasks[col.status]!().length)),
+            ),
           ),
           list(columnTasks[col.status]!, (task) =>
             h(
@@ -162,11 +167,7 @@ export function ProjectPage(params: Record<string, string>): Node {
                     onchange: (e: Event) => moveTask(task, (e.target as HTMLSelectElement).value),
                   },
                   ...COLUMNS.map((c) =>
-                    h(
-                      "option",
-                      { value: c.status, selected: c.status === task.status },
-                      c.label,
-                    ),
+                    h("option", { value: c.status, selected: c.status === task.status }, c.label),
                   ),
                 ),
               ),

@@ -87,9 +87,7 @@ export function ProjectsPage(): Node {
   const filtered = computed(() => {
     const q = query().trim().toLowerCase();
     if (!q) return projects();
-    return projects().filter(
-      (p) => p.name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q),
-    );
+    return projects().filter((p) => p.name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q));
   });
   const hasProjects = computed(() => filtered().length > 0);
 
@@ -105,12 +103,7 @@ export function ProjectsPage(): Node {
         h("h1.page-title", {}, icons.folder(24), "Projects"),
         h("p.page-subtitle", {}, "Manage your projects and track approvals"),
       ),
-      h(
-        "button.btn.btn-light",
-        { onclick: () => drawer.open() },
-        icons.plus(16),
-        "Create Project",
-      ),
+      h("button.btn.btn-light", { onclick: () => drawer.open() }, icons.plus(16), "Create Project"),
     ),
     h(
       "div.row.gap-3",
@@ -162,12 +155,7 @@ export function ProjectsPage(): Node {
             icons.folder(24),
             "No projects yet",
             "Create your first project to get started",
-            h(
-              "button.btn.btn-light",
-              { onclick: () => drawer.open() },
-              icons.plus(16),
-              "Create Project",
-            ),
+            h("button.btn.btn-light", { onclick: () => drawer.open() }, icons.plus(16), "Create Project"),
           ),
       ),
     ),

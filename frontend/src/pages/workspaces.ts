@@ -95,12 +95,7 @@ export function WorkspacesPage(): Node {
         h("h1.page-title", {}, icons.building(24), "Workspaces"),
         h("p.page-subtitle", {}, "Admin-only. Organize projects into separate workspaces."),
       ),
-      h(
-        "button.btn.btn-light",
-        { onclick: () => drawer.open() },
-        icons.plus(16),
-        "Create Workspace",
-      ),
+      h("button.btn.btn-light", { onclick: () => drawer.open() }, icons.plus(16), "Create Workspace"),
     ),
     h(
       "div",
@@ -132,12 +127,7 @@ export function WorkspacesPage(): Node {
             icons.building(24),
             "No workspaces yet",
             "Create your first workspace to start organizing projects",
-            h(
-              "button.btn.btn-light",
-              { onclick: () => drawer.open() },
-              icons.plus(16),
-              "Create Workspace",
-            ),
+            h("button.btn.btn-light", { onclick: () => drawer.open() }, icons.plus(16), "Create Workspace"),
           ),
       ),
     ),

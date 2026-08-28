@@ -139,12 +139,7 @@ export function App(): Node {
                     "div.shell",
                     {},
                     Sidebar(currentUser),
-                    h(
-                      "div.shell-main",
-                      {},
-                      Topbar(displayName, initials, currentUser, logout),
-                      content,
-                    ),
+                    h("div.shell-main", {}, Topbar(displayName, initials, currentUser, logout), content),
                   ),
                 () => h("div.stack", { style: { minHeight: "100vh" } }, content),
               ),
@@ -261,7 +256,11 @@ function Topbar(
               "div.dropdown-header",
               {},
               h("div.dropdown-header-name", {}, displayName),
-              h("div.dropdown-header-email", {}, computed(() => currentUser()?.email ?? "")),
+              h(
+                "div.dropdown-header-email",
+                {},
+                computed(() => currentUser()?.email ?? ""),
+              ),
             ),
             h("div.dropdown-divider", {}),
             h(
@@ -290,7 +289,8 @@ const THEME_OPTIONS: { pref: ThemePref; label: string; icon: (size?: number) => 
 
 function ThemeMenu(): Node {
   return Dropdown(
-    (toggle) => h("button.topbar-icon-btn.icon-btn-moon", { title: "Theme", onclick: toggle }, icons.moon(18)),
+    (toggle) =>
+      h("button.topbar-icon-btn.icon-btn-moon", { title: "Theme", onclick: toggle }, icons.moon(18)),
     (close) =>
       h(
         "div.dropdown-menu",

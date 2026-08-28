@@ -11,7 +11,11 @@ export interface DrawerHandle {
  * A right-side sliding panel, mounted once to <body> and reused for every open/close.
  * `content` is built once; call `open()` to slide it in, `close()` (or Escape / backdrop click) to slide out.
  */
-export function Drawer(title: string, content: (close: () => void) => Node, opts?: { width?: string }): DrawerHandle {
+export function Drawer(
+  title: string,
+  content: (close: () => void) => Node,
+  opts?: { width?: string },
+): DrawerHandle {
   const isOpen = signal(false);
   const close = () => isOpen.set(false);
   const open = () => isOpen.set(true);

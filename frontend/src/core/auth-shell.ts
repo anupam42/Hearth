@@ -26,7 +26,11 @@ export function AuthShell(title: string, subtitle: Node, formContent: Node): Nod
           "div.auth-caption-card",
           {},
           h("span.auth-caption-icon", {}, icons.lightbulb(14)),
-          h("p", {}, computed(() => TAGLINES[active()]!)),
+          h(
+            "p",
+            {},
+            computed(() => TAGLINES[active()]!),
+          ),
         ),
         h(
           "div.auth-dots",
@@ -61,7 +65,11 @@ export function PasswordField(
     h(
       "button.password-toggle",
       { type: "button", onclick: () => visible.set(!visible()), "aria-label": "Toggle password visibility" },
-      when(visible, () => icons.eyeOff(18), () => icons.eye(18)),
+      when(
+        visible,
+        () => icons.eyeOff(18),
+        () => icons.eye(18),
+      ),
     ),
   );
 }

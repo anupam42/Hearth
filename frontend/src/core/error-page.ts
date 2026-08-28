@@ -15,11 +15,7 @@ export function ErrorPage(opts: ErrorPageOptions): Node {
   return h(
     "div.error-page",
     {},
-    h(
-      "div.error-mascot-wrap",
-      {},
-      h("img.error-mascot", { src: "/icon.svg", alt: "" }),
-    ),
+    h("div.error-mascot-wrap", {}, h("img.error-mascot", { src: "/icon.svg", alt: "" })),
     h("div.error-code", {}, opts.code),
     h("h1.error-title", {}, opts.title),
     h("p.error-message", {}, opts.message),

@@ -10,7 +10,12 @@ export function Dropdown(
   const toggle = () => open.set(!open());
   const close = () => open.set(false);
 
-  const container = h("div.dropdown", {}, trigger(toggle, open), when(open, () => menu(close)));
+  const container = h(
+    "div.dropdown",
+    {},
+    trigger(toggle, open),
+    when(open, () => menu(close)),
+  );
 
   document.addEventListener("click", (e) => {
     if (!open()) return;

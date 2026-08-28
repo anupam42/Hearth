@@ -23,7 +23,8 @@ function detailSummary(details: string): string {
   try {
     const d = JSON.parse(details) as Record<string, unknown>;
     if (typeof d.key === "string" && typeof d.name === "string") return `${d.key} — ${d.name}`;
-    if (typeof d.display_id === "string" && typeof d.title === "string") return `${d.display_id} — ${d.title}`;
+    if (typeof d.display_id === "string" && typeof d.title === "string")
+      return `${d.display_id} — ${d.title}`;
     if (typeof d.name === "string") return d.name;
     if (typeof d.title === "string") return d.title;
     if (typeof d.status === "string") return `status → ${d.status}`;
@@ -79,9 +80,13 @@ export function AuditPage(): Node {
       const result = await api.get<AuditVerifyResult>("/audit/verify");
       verifyResult.set(result);
       if (result.intact) {
-        toast.success("Chain verified", { message: `${entries().length} entries checked — no tampering detected.` });
+        toast.success("Chain verified", {
+          message: `${entries().length} entries checked — no tampering detected.`,
+        });
       } else {
-        toast.error("Integrity check failed", { message: result.error ?? "The audit chain has been tampered with." });
+        toast.error("Integrity check failed", {
+          message: result.error ?? "The audit chain has been tampered with.",
+        });
       }
     } catch {
       toast.error("Couldn't run the integrity check");
@@ -112,14 +117,22 @@ export function AuditPage(): Node {
         h(
           "button.btn.btn-secondary",
           { onclick: runVerify, disabled: verifying() },
-          when(verifying, () => Spinner(14), () => icons.shield(16)),
+          when(
+            verifying,
+            () => Spinner(14),
+            () => icons.shield(16),
+          ),
           computed(() => (verifying() ? "Verifying…" : "Verify Integrity")),
         ),
         when(hasVerifyResult, () =>
           h(
             "div.audit-verify-banner",
             { class: computed(() => (verifyIntact() ? "ok" : "broken")) },
-            when(verifyIntact, () => icons.checkCircle(16), () => icons.alertTriangle(16)),
+            when(
+              verifyIntact,
+              () => icons.checkCircle(16),
+              () => icons.alertTriangle(16),
+            ),
             h(
               "span",
               {},
@@ -132,7 +145,10 @@ export function AuditPage(): Node {
           ),
         ),
       ),
-      when(computed(() => loadError().length > 0), () => h("div.error-banner", {}, loadError)),
+      when(
+        computed(() => loadError().length > 0),
+        () => h("div.error-banner", {}, loadError),
+      ),
       when(
         loading,
         () => h("div.audit-loading", {}, Spinner(20), h("span", {}, "Loading audit trail…")),
@@ -173,7 +189,12 @@ export function AuditPage(): Node {
                   );
                 }),
               ),
-            () => EmptyState(icons.shield(24), "No activity yet", "Actions across the app will show up here as they happen."),
+            () =>
+              EmptyState(
+                icons.shield(24),
+                "No activity yet",
+                "Actions across the app will show up here as they happen.",
+              ),
           ),
       ),
     ),

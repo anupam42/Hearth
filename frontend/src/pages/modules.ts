@@ -11,7 +11,10 @@ export function ModulesPage(): Node {
       {},
       h(
         "a.row.gap-2",
-        { href: "/modules", style: { color: "var(--color-accent)", fontSize: "0.875rem", fontWeight: "600" } },
+        {
+          href: "/modules",
+          style: { color: "var(--color-accent)", fontSize: "0.875rem", fontWeight: "600" },
+        },
         icons.chevronLeft(14),
         "Active Modules",
       ),

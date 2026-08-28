@@ -398,7 +398,10 @@ export function PomodoroPage(): Node {
           ...topTabs.map((t) =>
             h(
               "button.segmented-item",
-              { class: computed(() => (topTab() === t.id ? "active" : "")), onclick: () => switchTopTab(t.id) },
+              {
+                class: computed(() => (topTab() === t.id ? "active" : "")),
+                onclick: () => switchTopTab(t.id),
+              },
               t.label,
             ),
           ),
@@ -407,139 +410,149 @@ export function PomodoroPage(): Node {
           "div.pomodoro-center",
           {},
           h(
-          "div.glow-card",
-          {},
-          h(
-            "div.glow-card-inner",
+            "div.glow-card",
             {},
-            when(isPomodoro, () =>
-              h(
-                "div.pomodoro-tabs",
-                {},
-                ...modes.map((m) =>
-                  h(
-                    "button.pomodoro-tab",
-                    { class: computed(() => (mode() === m ? "active" : "")), onclick: () => switchMode(m) },
-                    MODE_LABEL[m],
-                  ),
-                ),
-              ),
-            ),
-            when(isCountdown, () =>
-              h(
-                "div.pomodoro-tabs",
-                {},
-                ...COUNTDOWN_PRESETS_MIN.map((min) =>
-                  h(
-                    "button.pomodoro-tab",
-                    {
-                      class: computed(() => (countdownMinutes() === min ? "active" : "")),
-                      onclick: () => pickCountdownPreset(min),
-                    },
-                    `${min}m`,
-                  ),
-                ),
-              ),
-            ),
-            when(isTracking, () =>
-              h(
-                "p",
-                { style: { color: "var(--color-text-muted)", fontSize: "0.8125rem", margin: "0" } },
-                "Open-ended session — start whenever, stop whenever. Time gets logged when you reset.",
-              ),
-            ),
             h(
-              "div.dot-clock",
+              "div.glow-card-inner",
               {},
-              reactiveDotDigit(() => mmStr()[0]!, 9),
-              reactiveDotDigit(() => mmStr()[1]!, 9),
-              dotColon(9),
-              reactiveDotDigit(() => ssStr()[0]!, 9),
-              reactiveDotDigit(() => ssStr()[1]!, 9),
-            ),
-            h(
-              "div.pomodoro-meta",
-              {},
-              when(
-                isPomodoro,
-                () =>
-                  h(
-                    "span.loop-badge",
-                    {},
-                    computed(() => {
-                      const n = (focusSessionsCompleted() % settings().sessionsBeforeLongBreak) + (mode() === "focus" ? 1 : 0);
-                      return `${Math.min(n, settings().sessionsBeforeLongBreak)}/${settings().sessionsBeforeLongBreak} Session`;
-                    }),
-                  ),
-                () => h("span.loop-badge", {}, isTracking() ? "OPEN" : "ONE-SHOT"),
-              ),
-              h(
-                "span.pomodoro-meta-text",
-                {},
-                computed(() => {
-                  if (topTab() === "pomodoro") return MODE_LABEL[mode()];
-                  if (topTab() === "countdown") return "Countdown";
-                  return "Tracking";
-                }),
-              ),
-              h(
-                "span.pomodoro-meta-text",
-                {},
-                computed(() => {
-                  if (topTab() === "pomodoro") return `${Math.floor(DURATIONS()[mode()] / 60)} min`;
-                  if (topTab() === "countdown") return `${countdownMinutes()} min`;
-                  return "Open-ended";
-                }),
-              ),
-            ),
-            h(
-              "div.subtask-list",
-              {},
-              list(subtasks, (task) =>
+              when(isPomodoro, () =>
                 h(
-                  "div.subtask-item",
+                  "div.pomodoro-tabs",
                   {},
-                  h(
-                    "button",
-                    { class: task.done ? "subtask-checkbox checked" : "subtask-checkbox", onclick: () => toggleSubtask(task.id) },
-                    task.done ? icons.checklist(11) : null,
-                  ),
-                  h("span", { class: task.done ? "subtask-label done" : "subtask-label" }, task.title),
-                  Dropdown(
-                    (toggle) => h("button.subtask-remove", { onclick: toggle, title: "More" }, icons.moreHorizontal(15)),
-                    (close) =>
-                      h(
-                        "div.dropdown-menu",
-                        { style: { minWidth: "140px" } },
-                        h(
-                          "button.dropdown-item.danger",
-                          {
-                            onclick: () => {
-                              close();
-                              removeSubtask(task.id);
-                            },
-                          },
-                          icons.trash(14),
-                          "Remove",
-                        ),
-                      ),
+                  ...modes.map((m) =>
+                    h(
+                      "button.pomodoro-tab",
+                      { class: computed(() => (mode() === m ? "active" : "")), onclick: () => switchMode(m) },
+                      MODE_LABEL[m],
+                    ),
                   ),
                 ),
               ),
+              when(isCountdown, () =>
+                h(
+                  "div.pomodoro-tabs",
+                  {},
+                  ...COUNTDOWN_PRESETS_MIN.map((min) =>
+                    h(
+                      "button.pomodoro-tab",
+                      {
+                        class: computed(() => (countdownMinutes() === min ? "active" : "")),
+                        onclick: () => pickCountdownPreset(min),
+                      },
+                      `${min}m`,
+                    ),
+                  ),
+                ),
+              ),
+              when(isTracking, () =>
+                h(
+                  "p",
+                  { style: { color: "var(--color-text-muted)", fontSize: "0.8125rem", margin: "0" } },
+                  "Open-ended session — start whenever, stop whenever. Time gets logged when you reset.",
+                ),
+              ),
               h(
-                "form.subtask-add",
-                { onsubmit: addSubtask },
-                icons.plus(14),
-                h("input.subtask-add-input", {
-                  placeholder: "Add sub task",
-                  ref: (el: HTMLElement) => {
-                    subtaskInputEl = el as HTMLInputElement;
-                  },
-                  oninput: (e: Event) => newSubtask.set((e.target as HTMLInputElement).value),
-                }),
+                "div.dot-clock",
+                {},
+                reactiveDotDigit(() => mmStr()[0]!, 9),
+                reactiveDotDigit(() => mmStr()[1]!, 9),
+                dotColon(9),
+                reactiveDotDigit(() => ssStr()[0]!, 9),
+                reactiveDotDigit(() => ssStr()[1]!, 9),
+              ),
+              h(
+                "div.pomodoro-meta",
+                {},
+                when(
+                  isPomodoro,
+                  () =>
+                    h(
+                      "span.loop-badge",
+                      {},
+                      computed(() => {
+                        const n =
+                          (focusSessionsCompleted() % settings().sessionsBeforeLongBreak) +
+                          (mode() === "focus" ? 1 : 0);
+                        return `${Math.min(n, settings().sessionsBeforeLongBreak)}/${settings().sessionsBeforeLongBreak} Session`;
+                      }),
+                    ),
+                  () => h("span.loop-badge", {}, isTracking() ? "OPEN" : "ONE-SHOT"),
+                ),
+                h(
+                  "span.pomodoro-meta-text",
+                  {},
+                  computed(() => {
+                    if (topTab() === "pomodoro") return MODE_LABEL[mode()];
+                    if (topTab() === "countdown") return "Countdown";
+                    return "Tracking";
+                  }),
+                ),
+                h(
+                  "span.pomodoro-meta-text",
+                  {},
+                  computed(() => {
+                    if (topTab() === "pomodoro") return `${Math.floor(DURATIONS()[mode()] / 60)} min`;
+                    if (topTab() === "countdown") return `${countdownMinutes()} min`;
+                    return "Open-ended";
+                  }),
+                ),
+              ),
+              h(
+                "div.subtask-list",
+                {},
+                list(subtasks, (task) =>
+                  h(
+                    "div.subtask-item",
+                    {},
+                    h(
+                      "button",
+                      {
+                        class: task.done ? "subtask-checkbox checked" : "subtask-checkbox",
+                        onclick: () => toggleSubtask(task.id),
+                      },
+                      task.done ? icons.checklist(11) : null,
+                    ),
+                    h("span", { class: task.done ? "subtask-label done" : "subtask-label" }, task.title),
+                    Dropdown(
+                      (toggle) =>
+                        h(
+                          "button.subtask-remove",
+                          { onclick: toggle, title: "More" },
+                          icons.moreHorizontal(15),
+                        ),
+                      (close) =>
+                        h(
+                          "div.dropdown-menu",
+                          { style: { minWidth: "140px" } },
+                          h(
+                            "button.dropdown-item.danger",
+                            {
+                              onclick: () => {
+                                close();
+                                removeSubtask(task.id);
+                              },
+                            },
+                            icons.trash(14),
+                            "Remove",
+                          ),
+                        ),
+                    ),
+                  ),
+                ),
+                h(
+                  "form.subtask-add",
+                  { onsubmit: addSubtask },
+                  icons.plus(14),
+                  h("input.subtask-add-input", {
+                    placeholder: "Add sub task",
+                    ref: (el: HTMLElement) => {
+                      subtaskInputEl = el as HTMLInputElement;
+                    },
+                    oninput: (e: Event) => newSubtask.set((e.target as HTMLInputElement).value),
+                  }),
+                ),
               ),
             ),
-          ),
           ),
         ),
         h(
@@ -553,7 +566,11 @@ export function PomodoroPage(): Node {
           h(
             "button.btn.btn-primary.pomodoro-start-btn",
             { onclick: toggle },
-            when(running, () => icons.pause(16), () => icons.play(16)),
+            when(
+              running,
+              () => icons.pause(16),
+              () => icons.play(16),
+            ),
             computed(() => (running() ? "Pause" : "Start")),
           ),
           h(
@@ -570,7 +587,12 @@ export function PomodoroPage(): Node {
           "div.pomodoro-hint",
           {},
           h("span", {}, h("kbd", {}, "Space"), "Toggle"),
-          h("span", {}, h("kbd", {}, "R"), computed(() => (isTracking() ? "Log & reset" : "Reset"))),
+          h(
+            "span",
+            {},
+            h("kbd", {}, "R"),
+            computed(() => (isTracking() ? "Log & reset" : "Reset")),
+          ),
         ),
       ),
     ),
@@ -592,7 +614,8 @@ function SettingsDrawer(
       {
         onsubmit: (e: Event) => {
           e.preventDefault();
-          const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n) || min));
+          const clamp = (n: number, min: number, max: number) =>
+            Math.min(max, Math.max(min, Math.round(n) || min));
           const next: PomodoroSettings = {
             focus: clamp(focusMin(), 1, 180),
             short: clamp(shortMin(), 1, 60),
@@ -680,7 +703,8 @@ function AnalyticsCard(
       {},
       h("span.side-card-title", {}, "Analytics"),
       Dropdown(
-        (toggle) => h("button.side-card-menu-btn", { onclick: toggle, title: "More" }, icons.moreHorizontal(16)),
+        (toggle) =>
+          h("button.side-card-menu-btn", { onclick: toggle, title: "More" }, icons.moreHorizontal(16)),
         (close) =>
           h(
             "div.dropdown-menu",
@@ -706,7 +730,11 @@ function AnalyticsCard(
         "div.stat-tile",
         {},
         h("span.stat-tile-icon", {}, icons.timer(16)),
-        h("span.stat-tile-value", {}, computed(() => `${Math.floor(totalFocusMinutes() / 60)}h`)),
+        h(
+          "span.stat-tile-value",
+          {},
+          computed(() => `${Math.floor(totalFocusMinutes() / 60)}h`),
+        ),
         h("span.stat-tile-label", {}, "Total focus"),
       ),
       h(
@@ -720,7 +748,11 @@ function AnalyticsCard(
         "div.stat-tile",
         {},
         h("span.stat-tile-icon", {}, icons.checklist(16)),
-        h("span.stat-tile-value", {}, computed(() => `${bestStreakDays()}d`)),
+        h(
+          "span.stat-tile-value",
+          {},
+          computed(() => `${bestStreakDays()}d`),
+        ),
         h("span.stat-tile-label", {}, "Best streak"),
       ),
     ),
@@ -728,7 +760,11 @@ function AnalyticsCard(
       "div.week-header",
       {},
       h("span", {}, "This week"),
-      h("strong", {}, computed(() => `${weekTotalHours()}h total`)),
+      h(
+        "strong",
+        {},
+        computed(() => `${weekTotalHours()}h total`),
+      ),
     ),
     h(
       "div.week-chart",
@@ -768,7 +804,16 @@ function FocusSoundsCard(ctx: {
   shuffleSound: () => void;
   toggleMute: () => void;
 }): Node {
-  const { selectedSound, soundPlaying, soundMuted, pickSound, toggleSoundPlaying, stepSound, shuffleSound, toggleMute } = ctx;
+  const {
+    selectedSound,
+    soundPlaying,
+    soundMuted,
+    pickSound,
+    toggleSoundPlaying,
+    stepSound,
+    shuffleSound,
+    toggleMute,
+  } = ctx;
 
   const activeMeta = computed(() => FOCUS_SOUNDS.find((s) => s.id === selectedSound()) ?? null);
 
@@ -788,20 +833,44 @@ function FocusSoundsCard(ctx: {
     h(
       "div.sound-now-playing",
       {},
-      h("strong", {}, computed(() => activeMeta()?.label ?? "No sound selected")),
-      h("span", {}, computed(() => (soundPlaying() ? "Ambient loop · playing" : "Ambient loop · paused"))),
+      h(
+        "strong",
+        {},
+        computed(() => activeMeta()?.label ?? "No sound selected"),
+      ),
+      h(
+        "span",
+        {},
+        computed(() => (soundPlaying() ? "Ambient loop · playing" : "Ambient loop · paused")),
+      ),
     ),
     h(
       "div.sound-controls",
       {},
-      h("button.sound-ctrl-btn", { title: "Shuffle", type: "button", onclick: shuffleSound }, icons.shuffle(16)),
-      h("button.sound-ctrl-btn", { title: "Previous", type: "button", onclick: () => stepSound(-1) }, icons.skipBack(16)),
+      h(
+        "button.sound-ctrl-btn",
+        { title: "Shuffle", type: "button", onclick: shuffleSound },
+        icons.shuffle(16),
+      ),
+      h(
+        "button.sound-ctrl-btn",
+        { title: "Previous", type: "button", onclick: () => stepSound(-1) },
+        icons.skipBack(16),
+      ),
       h(
         "button.sound-play-btn",
         { title: "Play/Pause", type: "button", onclick: toggleSoundPlaying },
-        when(soundPlaying, () => icons.pause(20), () => icons.play(20)),
+        when(
+          soundPlaying,
+          () => icons.pause(20),
+          () => icons.play(20),
+        ),
       ),
-      h("button.sound-ctrl-btn", { title: "Next", type: "button", onclick: () => stepSound(1) }, icons.skipForward(16)),
+      h(
+        "button.sound-ctrl-btn",
+        { title: "Next", type: "button", onclick: () => stepSound(1) },
+        icons.skipForward(16),
+      ),
       h(
         "button.sound-ctrl-btn",
         { title: computed(() => (soundMuted() ? "Unmute" : "Mute")), type: "button", onclick: toggleMute },

@@ -32,12 +32,7 @@ function SectionCard(icon: Node, title: string, description: string, action: Nod
       h(
         "div",
         {},
-        h(
-          "div.settings-section-title",
-          {},
-          h("span.section-icon-badge", {}, icon),
-          title,
-        ),
+        h("div.settings-section-title", {}, h("span.section-icon-badge", {}, icon), title),
         h("p.settings-section-desc", {}, description),
       ),
       action,
@@ -204,11 +199,24 @@ function TokensSection(): Node {
             h(
               "div.token-secret-box",
               {},
-              h("code", {}, computed(() => createdToken()?.secret ?? "")),
+              h(
+                "code",
+                {},
+                computed(() => createdToken()?.secret ?? ""),
+              ),
               h(
                 "button.token-copy-btn",
-                { class: computed(() => (copied() ? "copied" : "")), type: "button", onclick: copySecret, title: "Copy" },
-                when(copied, () => icons.check(16), () => icons.copy(16)),
+                {
+                  class: computed(() => (copied() ? "copied" : "")),
+                  type: "button",
+                  onclick: copySecret,
+                  title: "Copy",
+                },
+                when(
+                  copied,
+                  () => icons.check(16),
+                  () => icons.copy(16),
+                ),
               ),
             ),
             h(
@@ -252,7 +260,10 @@ function TokensSection(): Node {
               h("label", {}, "Permissions"),
               h(
                 "select.input",
-                { onchange: (e: Event) => permission.set((e.target as HTMLSelectElement).value as "read" | "read_write") },
+                {
+                  onchange: (e: Event) =>
+                    permission.set((e.target as HTMLSelectElement).value as "read" | "read_write"),
+                },
                 h("option", { value: "read_write", selected: true }, "Read & write"),
                 h("option", { value: "read" }, "Read only"),
               ),
@@ -267,7 +278,10 @@ function TokensSection(): Node {
                 oninput: (e: Event) => expiry.set((e.target as HTMLInputElement).value),
               }),
             ),
-            when(computed(() => createError().length > 0), () => h("div.error-banner", {}, createError)),
+            when(
+              computed(() => createError().length > 0),
+              () => h("div.error-banner", {}, createError),
+            ),
             h(
               "div.drawer-footer",
               { style: { padding: "0", borderTop: "none", marginTop: "8px" } },
@@ -307,7 +321,10 @@ function TokensSection(): Node {
     h(
       "div.stack.gap-3",
       {},
-      when(computed(() => loadError().length > 0), () => h("div.error-banner", {}, loadError)),
+      when(
+        computed(() => loadError().length > 0),
+        () => h("div.error-banner", {}, loadError),
+      ),
       when(
         hasTokens,
         () =>
@@ -376,6 +393,10 @@ function PositionPicker(): Node {
         }),
       ),
     ),
-    h("span.position-picker-label", {}, computed(() => POSITIONS.find((p) => p.value === toastPosition())?.label ?? "")),
+    h(
+      "span.position-picker-label",
+      {},
+      computed(() => POSITIONS.find((p) => p.value === toastPosition())?.label ?? ""),
+    ),
   );
 }

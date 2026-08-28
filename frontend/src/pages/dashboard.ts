@@ -23,9 +23,7 @@ export function DashboardPage(): Node {
   const filtered = computed(() => {
     const q = query().trim().toLowerCase();
     if (!q) return projects();
-    return projects().filter(
-      (p) => p.name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q),
-    );
+    return projects().filter((p) => p.name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q));
   });
   const hasProjects = computed(() => filtered().length > 0);
   const firstName = computed(() => (user()?.display_name ?? "").split(" ")[0] ?? "");
@@ -36,7 +34,11 @@ export function DashboardPage(): Node {
     h(
       "div.page-header",
       {},
-      h("h1", { style: { fontSize: "1.75rem" } }, computed(() => `Welcome back, ${firstName()}!`)),
+      h(
+        "h1",
+        { style: { fontSize: "1.75rem" } },
+        computed(() => `Welcome back, ${firstName()}!`),
+      ),
       h("p.page-subtitle", {}, "Here's an overview of your projects and tasks"),
     ),
     h(
@@ -46,7 +48,12 @@ export function DashboardPage(): Node {
         "div.tip-banner",
         {},
         icons.lightbulb(18),
-        h("span", {}, h("strong", {}, "Tip: "), "Log in with your SSO provider to sync your profile picture across Hearth."),
+        h(
+          "span",
+          {},
+          h("strong", {}, "Tip: "),
+          "Log in with your SSO provider to sync your profile picture across Hearth.",
+        ),
       ),
     ),
     h(
@@ -76,7 +83,11 @@ export function DashboardPage(): Node {
       h(
         "div.empty-state",
         { style: { padding: "24px" } },
-        h("span", { style: { color: "var(--color-text-muted)", fontSize: "0.875rem" } }, "No tasks assigned to you"),
+        h(
+          "span",
+          { style: { color: "var(--color-text-muted)", fontSize: "0.875rem" } },
+          "No tasks assigned to you",
+        ),
       ),
     ),
     h(

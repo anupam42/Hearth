@@ -72,5 +72,9 @@ export function LoginPage(onAuthenticated: (user: User) => void): Node {
     h("button.btn.btn-primary.btn-block", { type: "submit", disabled: loading() }, "Sign in"),
   );
 
-  return AuthShell("Sign in to Hearth", AuthSwitchLink("Don't have an account?", "Sign up", "/register"), form);
+  return AuthShell(
+    "Sign in to Hearth",
+    AuthSwitchLink("Don't have an account?", "Sign up", "/register"),
+    form,
+  );
 }
